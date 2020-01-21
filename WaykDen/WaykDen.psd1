@@ -50,7 +50,9 @@
     # ProcessorArchitecture = ''
     
     # Modules that must be imported into the global environment prior to importing this module
-    # RequiredModules = @()
+    RequiredModules = @(
+        @{ModuleName="powershell-yaml";ModuleVersion="0.4.1";Guid="6a75a662-7f53-425a-9777-ee61284407da"}
+    )
     
     # Assemblies that must be loaded prior to importing this module
     # RequiredAssemblies = @()
@@ -68,10 +70,11 @@
     NestedModules = @('bin\WaykDen.dll')
     
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-    FunctionsToExport = @('Connect-WaykDenUser', 'Disconnect-WaykDenUser')
+    FunctionsToExport = @('Connect-WaykDenUser', 'Disconnect-WaykDenUser',
+    'New-WaykDenConfig', 'Set-WaykDenConfig', 'Get-WaykDenConfig')
     
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
-    CmdletsToExport = @('New-WaykDenConfig', 'Set-WaykDenConfig', 'Get-WaykDenConfig',
+    CmdletsToExport = @(
     'Remove-WaykDenConfig', 'Export-WaykDenConfig',
     'Start-WaykDen', 'Stop-WaykDen', 'Restart-WaykDen',
     'Set-WaykDenWebCertificate')

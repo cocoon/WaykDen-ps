@@ -20,31 +20,33 @@ namespace WaykDen.Controllers
         private const string DEN_DOCKER_CONFIG_COLLECTION = "DenDockerConfig";
         private const int DB_ID = 1;
         private string path;
+        private string file;
         private string connString = string.Empty;
+        private bool yamlFormat = true;
         public DenConfigController(string path)
         {
-            this.path = $"{path}/WaykDen.db";
-            this.connString = $"Filename={this.path}; Mode=Exclusive";
-            if(File.Exists(this.path))
-            {
-                this.TestConnString();
-            }
-
-            BsonMapper.Global.EmptyStringToNull = false;
-        }
-
-        private void TestConnString()
-        {
-            try
-            {
-                using(var db = new LiteDatabase(this.connString))
+            if (this.yamlFormat) {
+                this.path = path;
+                this.file = $"{path}/wayk-den.yml";
+            } else {
+                this.path = $"{path}/WaykDen.db";
+                this.connString = $"Filename={this.path}; Mode=Exclusive";
+                if(File.Exists(this.path))
                 {
-                    var collections = db.GetCollectionNames();
+                    try
+                    {
+                        using(var db = new LiteDatabase(this.connString))
+                        {
+                            var collections = db.GetCollectionNames();
+                        }
+                    }
+                    catch(Exception)
+                    {
+                        throw new Exception("Invalid database password.");
+                    }
                 }
-            }
-            catch(Exception)
-            {
-                throw new Exception("Invalid database password.");
+
+                BsonMapper.Global.EmptyStringToNull = false;
             }
         }
 
@@ -71,16 +73,20 @@ namespace WaykDen.Controllers
 
         public void StoreConfig(DenConfig config)
         {
-            using(var db = new LiteDatabase(this.connString))
-            {
-                if(db.CollectionExists(DEN_MONGO_CONFIG_COLLECTION))
+            if (this.yamlFormat) {
+                throw new Exception("unimplemented");
+            } else {
+                using(var db = new LiteDatabase(this.connString))
                 {
-                    this.Update(db, config);
-                } else this.Store(db ,config);
+                    if(db.CollectionExists(DEN_MONGO_CONFIG_COLLECTION))
+                    {
+                        this.UpdateLite(db, config);
+                    } else this.StoreLite(db ,config);
+                }
             }
         }
 
-        private void Store(LiteDatabase db, DenConfig config)
+        private void StoreLite(LiteDatabase db, DenConfig config)
         {
             var col_mongo = db.GetCollection<DenMongoConfigObject>(DEN_MONGO_CONFIG_COLLECTION);
             col_mongo.Insert(DB_ID, config.DenMongoConfigObject);
@@ -101,7 +107,7 @@ namespace WaykDen.Controllers
             col_docker.Insert(DB_ID, config.DenDockerConfigObject);
         }
 
-        private void Update(LiteDatabase db, DenConfig config)
+        private void UpdateLite(LiteDatabase db, DenConfig config)
         {
             var col_mongo = db.GetCollection<DenMongoConfigObject>(DEN_MONGO_CONFIG_COLLECTION);
             col_mongo.Update(DB_ID, config.DenMongoConfigObject);
@@ -124,26 +130,25 @@ namespace WaykDen.Controllers
 
         public DenConfig GetConfig()
         {
-            if(!this.DbExists)
-            {
-                throw new Exception("Could not find WaykDen configuration in given path. Use New-WaykDenConfig or make sure WaykDen configuration is in current folder or set WAYK_DEN_HOME to the path of WaykDen configuration");
-            }
-
-            using(var db = new LiteDatabase(this.connString))
-            {
-                return new DenConfig()
+            if (this.yamlFormat) {
+                throw new Exception("unimplemented");
+            } else {
+                using(var db = new LiteDatabase(this.connString))
                 {
-                    DenLucidConfigObject = this.GetLucid(db),
-                    DenPickyConfigObject = this.GetPicky(db),
-                    DenMongoConfigObject = this.GetMongo(db),
-                    DenServerConfigObject = this.GetServer(db),
-                    DenTraefikConfigObject = this.GetTraefik(db),
-                    DenDockerConfigObject = this.GetDocker(db)
-                };
+                    return new DenConfig()
+                    {
+                        DenLucidConfigObject = this.GetLucidLite(db),
+                        DenPickyConfigObject = this.GetPickyLite(db),
+                        DenMongoConfigObject = this.GetMongoLite(db),
+                        DenServerConfigObject = this.GetServerLite(db),
+                        DenTraefikConfigObject = this.GetTraefikLite(db),
+                        DenDockerConfigObject = this.GetDockerLite(db)
+                    };
+                }
             }
         }
 
-        private DenMongoConfigObject GetMongo(LiteDatabase db)
+        private DenMongoConfigObject GetMongoLite(LiteDatabase db)
         {
             var coll = db.GetCollection(DEN_MONGO_CONFIG_COLLECTION);
             var values = coll.FindById(DB_ID);
@@ -156,7 +161,7 @@ namespace WaykDen.Controllers
             };
         }
 
-        private DenPickyConfigObject GetPicky(LiteDatabase db)
+        private DenPickyConfigObject GetPickyLite(LiteDatabase db)
         {
             var coll = db.GetCollection(DEN_PICKY_CONFIG_COLLECTION);
             var values = coll.FindById(DB_ID);
@@ -171,7 +176,7 @@ namespace WaykDen.Controllers
             };
         }
 
-        private DenLucidConfigObject GetLucid(LiteDatabase db)
+        private DenLucidConfigObject GetLucidLite(LiteDatabase db)
         {
             var coll = db.GetCollection(DEN_LUCID_CONFIG_COLLECTION);
             var values = coll.FindById(DB_ID);
@@ -186,7 +191,7 @@ namespace WaykDen.Controllers
             };
         }
 
-        private DenServerConfigObject GetServer(LiteDatabase db)
+        private DenServerConfigObject GetServerLite(LiteDatabase db)
         {
             var coll = db.GetCollection(DEN_SERVER_CONFIG_COLLECTION);
             var values = coll.FindById(DB_ID);
@@ -230,7 +235,7 @@ namespace WaykDen.Controllers
             };
         }
 
-        private DenTraefikConfigObject GetTraefik(LiteDatabase db)
+        private DenTraefikConfigObject GetTraefikLite(LiteDatabase db)
         {
             var coll = db.GetCollection(DEN_TRAEFIK_CONFIG_COLLECTION);
             var values = coll.FindById(DB_ID);
@@ -245,7 +250,7 @@ namespace WaykDen.Controllers
             };
         }
 
-        private DenDockerConfigObject GetDocker(LiteDatabase db)
+        private DenDockerConfigObject GetDockerLite(LiteDatabase db)
         {
             var coll = db.GetCollection(DEN_DOCKER_CONFIG_COLLECTION);
             var values = coll.FindById(DB_ID);
