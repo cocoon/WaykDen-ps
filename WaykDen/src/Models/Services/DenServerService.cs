@@ -10,7 +10,7 @@ namespace WaykDen.Models.Services
     public class DenServerService : DenHealthCheckService
     {
         public const string DENSERVER_NAME = "den-server";
-        ////private const string DENSERVER_IMAGE = "devolutions/waykden-rs:1.1.0-dev";
+
         private const string DEN_PRIVATE_KEY_FILE_ENV = "DEN_PRIVATE_KEY_FILE";
         private const string DEN_PUBLIC_KEY_FILE_ENV = "DEN_PUBLIC_KEY_FILE";
         private const string PICKY_REALM_ENV = "PICKY_REALM";
@@ -35,7 +35,6 @@ namespace WaykDen.Models.Services
         private const string DEN_LOGIN_REQUIRED_ENV = "DEN_LOGIN_REQUIRED";
         private const string DEN_SERVER_LINUX_PATH = "/etc/den-server";
         private const string DEN_SERVER_WINDOWS_PATH = "c:\\den-server";
-
         private const string NATS_HOST = "NATS_HOST";
         private const string NATS_USERNAME = "NATS_USERNAME";
         private const string NATS_PASSWORD = "NATS_PASSWORD";

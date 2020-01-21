@@ -17,7 +17,7 @@ namespace WaykDen.Models.Services
         public string Tls = string.Empty;
         public string Entrypoints = "ws";
         public string WaykDenPort => this.DenConfig.DenTraefikConfigObject.WaykDenPort;
-        public string Url => this.DenConfig.DenServerConfigObject.ExternalUrl;
+
         public DenTraefikService(DenServicesController controller, int instanceCount = 1) :base(controller, TRAEFIK_NAME)
         {
             this.ImageName = this.DenConfig.DenImageConfigObject.DenTraefikImage;
