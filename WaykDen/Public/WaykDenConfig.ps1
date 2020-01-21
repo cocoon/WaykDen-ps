@@ -155,13 +155,87 @@ function New-WaykDenConfig
     ConvertTo-Yaml $config -OutFile $ConfigFile -Force:$Force
 }
 
-function Set-WaykDenConfig(
-    [string] $Path
-){
+function Set-WaykDenConfig
+{
+    param(
+        [string] $Path,
+    
+        [string] $Realm,
+        [string] $ExternalUrl,
+
+        # Server
+        [string] $WaykDenPort,
+        [string] $Certificate,
+        [string] $PrivateKey,
+        [string] $SyslogServer,
+
+        # MongoDB
+        [string] $MongoUrl,
+
+        # Jet
+        [string] $JetRelayUrl,
+
+        # LDAP
+        [string] $LdapServerUrl,
+        [string] $LdapUsername,
+        [string] $LdapPassword,
+        [string] $LdapUserGroup,
+        [string] $LdapServerType,
+        [string] $LdapBaseDn,
+
+        # NATS
+        [string] $NatsUrl,
+        [string] $NatsUsername,
+        [string] $NatsPassword,
+        
+        # Redis
+        [string] $RedisUrl,
+        [string] $RedisPassword,
+
+        [switch] $Force
+    )
+
+    if ([string]::IsNullOrEmpty($Path)) {
+        $Path = Get-Location
+    }
+
     $config = Get-WaykDenConfig -Path $Path
 
     New-Item -Path $Path -ItemType "Directory" -Force | Out-Null
     $ConfigFile = Join-Path $Path "wayk-den.yml"
+
+    # Mandatory
+    Set-ConfigString $config 'Realm' $Realm
+    Set-ConfigString $config 'ExternalUrl' $ExternalUrl
+
+    # Server
+    Set-ConfigString $config 'WaykDenPort' $WaykDenPort
+    Set-ConfigString $config 'Certificate' $Certificate
+    Set-ConfigString $config 'PrivateKey' $PrivateKey
+    Set-ConfigString $config 'SyslogServer' $SyslogServer
+
+    # MongoDB
+    Set-ConfigString $config 'MongoUrl' $MongoUrl
+    
+    # Jet
+    Set-ConfigString $config 'JetRelayUrl' $JetRelayUrl
+
+    # LDAP
+    Set-ConfigString $config 'LdapServerUrl' $LdapServerUrl
+    Set-ConfigString $config 'LdapUsername' $LdapUsername
+    Set-ConfigString $config 'LdapPassword' $LdapPassword
+    Set-ConfigString $config 'LdapUserGroup' $LdapUserGroup
+    Set-ConfigString $config 'LdapServerType' $LdapServerType
+    Set-ConfigString $config 'LdapBaseDn' $LdapBaseDn
+
+    # NATS
+    Set-ConfigString $config 'NatsUrl' $NatsUrl
+    Set-ConfigString $config 'NatsUsername' $NatsUsername
+    Set-ConfigString $config 'NatsPassword' $NatsPassword
+
+    # Redis
+    Set-ConfigString $config 'RedisUrl' $RedisUrl
+    Set-ConfigString $config 'RedisPassword' $RedisPassword
 
     ConvertTo-Yaml $config -OutFile $ConfigFile -Force
 }
