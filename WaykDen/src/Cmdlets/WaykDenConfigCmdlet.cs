@@ -9,8 +9,6 @@ namespace WaykDen.Cmdlets
         protected const string WAYK_DEN_HOME = "WAYK_DEN_HOME";
         protected string Path {get; set;}
         protected DenConfigController DenConfigController {get; set;}
-        [Parameter(HelpMessage = "Key to encrypt or decrypt configuration database.")]
-        public string Key {get; set;}
         protected override void BeginProcessing()
         {
             try
@@ -21,7 +19,7 @@ namespace WaykDen.Cmdlets
                     this.Path = this.SessionState.Path.CurrentLocation.Path;
                 }
 
-                this.DenConfigController = new DenConfigController(this.Path, this.Key);
+                this.DenConfigController = new DenConfigController(this.Path);
             }
             catch(Exception e)
             {

@@ -9,10 +9,9 @@ namespace WaykDen.Models.Services
     public class DenMongoService : DenService
     {
         public const string MONGO_NAME = "den-mongo";
-        private const string MONGO_IMAGE = "mongo";
         private const string MONGO_LINUX_PATH = "/data/db";
         private const string MONGO_WINDOWS_PATH = "c:\\data\\db";
-        private const string DEFAULT_MONGO_URL = "mongodb://den-mongo:27017";
+    
         public DenMongoService()
         {
         }

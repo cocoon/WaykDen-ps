@@ -29,7 +29,7 @@ namespace WaykDen.Cmdlets
         {
             try
             {
-                DenConfigController denConfigController = new DenConfigController(this.Path, this.Key);
+                DenConfigController denConfigController = new DenConfigController(this.Path);
                 DenConfig config = denConfigController.GetConfig();
 
                 if(this.ParameterSetName == PKCS12)

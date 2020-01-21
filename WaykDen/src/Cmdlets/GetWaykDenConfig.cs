@@ -10,8 +10,6 @@ namespace WaykDen.Cmdlets
         [Parameter()]
         public SwitchParameter PwshObject { get; set; } = false;
 
-        private const string WORKING_DIRECTORY = "Working Directory";
-
         public DenMongoConfigObject DenMongoConfigObject => this.DenConfig.DenMongoConfigObject;
 
         public DenPickyConfigObject DenPickyConfigObject => this.DenConfig.DenPickyConfigObject;

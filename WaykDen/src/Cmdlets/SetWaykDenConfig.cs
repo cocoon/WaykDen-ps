@@ -166,7 +166,7 @@ namespace WaykDen.Cmdlets
                     return;
                 }
 
-                DenConfigController denConfigController = new DenConfigController(this.Path, this.Key);
+                DenConfigController denConfigController = new DenConfigController(this.Path);
                 DenConfig config = denConfigController.GetConfig();
 
                 if(this.Remove != null)

@@ -20,13 +20,11 @@ namespace WaykDen.Controllers
         private const string DEN_DOCKER_CONFIG_COLLECTION = "DenDockerConfig";
         private const int DB_ID = 1;
         private string path;
-        private string password;
         private string connString = string.Empty;
-        public DenConfigController(string path, string password)
+        public DenConfigController(string path)
         {
             this.path = $"{path}/WaykDen.db";
-            this.password = string.IsNullOrEmpty(password) ? string.Empty : password;
-            this.connString = string.IsNullOrEmpty(password) ? $"Filename={this.path}; Mode=Exclusive" : $"Filename={this.path}; Password={this.password}; Mode=Exclusive";
+            this.connString = $"Filename={this.path}; Mode=Exclusive";
             if(File.Exists(this.path))
             {
                 this.TestConnString();
@@ -84,22 +82,44 @@ namespace WaykDen.Controllers
 
         private void Store(LiteDatabase db, DenConfig config)
         {
-            this.StoreMongo(db, config.DenMongoConfigObject);
-            this.StorePicky(db,config.DenPickyConfigObject);
-            this.StoreLucid(db, config.DenLucidConfigObject);
-            this.StoreServer(db, config.DenServerConfigObject);
-            this.StoreTraefik(db, config.DenTraefikConfigObject);
-            this.StoreDocker(db, config.DenDockerConfigObject);
+            var col_mongo = db.GetCollection<DenMongoConfigObject>(DEN_MONGO_CONFIG_COLLECTION);
+            col_mongo.Insert(DB_ID, config.DenMongoConfigObject);
+
+            var col_picky = db.GetCollection<DenPickyConfigObject>(DEN_PICKY_CONFIG_COLLECTION);
+            col_picky.Insert(DB_ID, config.DenPickyConfigObject);
+
+            var col_lucid = db.GetCollection<DenLucidConfigObject>(DEN_LUCID_CONFIG_COLLECTION);
+            col_lucid.Insert(DB_ID, config.DenLucidConfigObject);
+
+            var col_server = db.GetCollection<DenServerConfigObject>(DEN_SERVER_CONFIG_COLLECTION);
+            col_server.Insert(DB_ID, config.DenServerConfigObject);
+
+            var col_traefik = db.GetCollection<DenTraefikConfigObject>(DEN_TRAEFIK_CONFIG_COLLECTION);
+            col_traefik.Insert(DB_ID, config.DenTraefikConfigObject);
+
+            var col_docker = db.GetCollection<DenDockerConfigObject>(DEN_DOCKER_CONFIG_COLLECTION);
+            col_docker.Insert(DB_ID, config.DenDockerConfigObject);
         }
 
         private void Update(LiteDatabase db, DenConfig config)
         {
-            this.UpdateMongo(db, config.DenMongoConfigObject);
-            this.UpdatePicky(db, config.DenPickyConfigObject);
-            this.UpdateLucid(db, config.DenLucidConfigObject);
-            this.UpdateServer(db, config.DenServerConfigObject);
-            this.UpdateTraefik(db, config.DenTraefikConfigObject);
-            this.UpdateDocker(db, config.DenDockerConfigObject);
+            var col_mongo = db.GetCollection<DenMongoConfigObject>(DEN_MONGO_CONFIG_COLLECTION);
+            col_mongo.Update(DB_ID, config.DenMongoConfigObject);
+
+            var col_picky = db.GetCollection<DenPickyConfigObject>(DEN_PICKY_CONFIG_COLLECTION);
+            col_picky.Update(DB_ID, config.DenPickyConfigObject);
+
+            var col_lucid = db.GetCollection<DenLucidConfigObject>(DEN_LUCID_CONFIG_COLLECTION);
+            col_lucid.Update(DB_ID, config.DenLucidConfigObject);
+
+            var col_server = db.GetCollection<DenServerConfigObject>(DEN_SERVER_CONFIG_COLLECTION);
+            col_server.Update(DB_ID, config.DenServerConfigObject);
+
+            var col_traefik = db.GetCollection<DenTraefikConfigObject>(DEN_TRAEFIK_CONFIG_COLLECTION);
+            col_traefik.Update(DB_ID, config.DenTraefikConfigObject);
+
+            var col_docker = db.GetCollection<DenDockerConfigObject>(DEN_DOCKER_CONFIG_COLLECTION);
+            col_docker.Update(DB_ID, config.DenDockerConfigObject);
         }
 
         public DenConfig GetConfig()
@@ -238,124 +258,6 @@ namespace WaykDen.Controllers
                 Platform = platformOk ? ((string)platform) : "Linux",
                 SyslogServer = syslogOk ? ((string)syslog) : string.Empty
             };
-        }
-
-        private void StoreMongo(LiteDatabase db, DenMongoConfigObject mongo)
-        {
-            var col = db.GetCollection<DenMongoConfigObject>(DEN_MONGO_CONFIG_COLLECTION);
-            col.Insert(DB_ID, mongo);
-        }
-
-        private void StorePicky(LiteDatabase db, DenPickyConfigObject picky)
-        {
-            var col = db.GetCollection<DenPickyConfigObject>(DEN_PICKY_CONFIG_COLLECTION);
-            col.Insert(DB_ID, picky);
-        }
-
-        private void StoreLucid(LiteDatabase db, DenLucidConfigObject lucid)
-        {
-            var col = db.GetCollection<DenLucidConfigObject>(DEN_LUCID_CONFIG_COLLECTION);
-            col.Insert(DB_ID, lucid);
-        }
-
-        private void StoreServer(LiteDatabase db, DenServerConfigObject server)
-        {
-            var col = db.GetCollection<DenServerConfigObject>(DEN_SERVER_CONFIG_COLLECTION);
-            col.Insert(DB_ID, server);
-        }
-
-        private void StoreTraefik(LiteDatabase db, DenTraefikConfigObject traefik)
-        {
-            var col = db.GetCollection<DenTraefikConfigObject>(DEN_TRAEFIK_CONFIG_COLLECTION);
-            col.Insert(DB_ID, traefik);
-        }
-
-        private void StoreDocker(LiteDatabase db, DenDockerConfigObject docker)
-        {
-            var col = db.GetCollection<DenDockerConfigObject>(DEN_DOCKER_CONFIG_COLLECTION);
-            col.Insert(DB_ID, docker);
-        }
-
-        private void UpdateMongo(LiteDatabase db, DenMongoConfigObject mongo)
-        {
-            var col = db.GetCollection<DenMongoConfigObject>(DEN_MONGO_CONFIG_COLLECTION);
-            col.Update(DB_ID, mongo);
-        }
-
-        private void UpdatePicky(LiteDatabase db, DenPickyConfigObject picky)
-        {
-            var col = db.GetCollection<DenPickyConfigObject>(DEN_PICKY_CONFIG_COLLECTION);
-            col.Update(DB_ID, picky);
-        }
-
-        private void UpdateLucid(LiteDatabase db, DenLucidConfigObject lucid)
-        {
-            var col = db.GetCollection<DenLucidConfigObject>(DEN_LUCID_CONFIG_COLLECTION);
-            col.Update(DB_ID, lucid);
-        }
-
-        private void UpdateServer(LiteDatabase db, DenServerConfigObject server)
-        {
-            var col = db.GetCollection<DenServerConfigObject>(DEN_SERVER_CONFIG_COLLECTION);
-            col.Update(DB_ID, server);
-        }
-
-        private void UpdateTraefik(LiteDatabase db, DenTraefikConfigObject traefik)
-        {
-            var col = db.GetCollection<DenTraefikConfigObject>(DEN_TRAEFIK_CONFIG_COLLECTION);
-            col.Update(DB_ID, traefik);
-        }
-
-        private void UpdateDocker(LiteDatabase db, DenDockerConfigObject docker)
-        {
-            var col = db.GetCollection<DenDockerConfigObject>(DEN_DOCKER_CONFIG_COLLECTION);
-            col.Update(DB_ID, docker);
-        }
-
-        private string LoadPassword()
-        {
-            try
-            {
-                string dir = Directory.GetParent(this.path).FullName;
-                string file = $"{dir}/WaykDen.key";
-                if(!File.Exists(file))
-                {
-                    string pswd = DenServiceUtils.GenerateRandom(20);
-                    File.WriteAllText(file, pswd.Replace("-", string.Empty));
-                    return pswd;
-                }
-
-                return File.ReadAllText(file);
-            }
-            catch(Exception e)
-            {
-                e.ToString();
-                return string.Empty;
-            }
-        }
-
-        public void AddConfigKey(string newKey)
-        {
-            using(var db = new LiteDatabase($"Filename={path}; Mode=Exclusive"))
-            {
-                db.Engine.Shrink(newKey);
-            }
-        }
-
-        public void RemoveConfigKey(string key)
-        {
-            using(var db = new LiteDatabase($"Filename={path}; Password={key}; Mode=Exclusive"))
-            {
-                db.Engine.Shrink();
-            }
-        }
-
-        public void ChangeConfigKey(string newKey, string oldKey)
-        {
-            using(var db = new LiteDatabase($"Filename={path}; Password={oldKey}; Mode=Exclusive"))
-            {
-                db.Engine.Shrink(newKey);
-            }
         }
     }
 }

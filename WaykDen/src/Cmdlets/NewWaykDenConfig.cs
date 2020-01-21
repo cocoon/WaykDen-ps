@@ -100,7 +100,7 @@ namespace WaykDen.Cmdlets
         {
             try
             {
-                DenConfigController denConfigController = new DenConfigController(this.Path, this.Key);
+                DenConfigController denConfigController = new DenConfigController(this.Path);
 
                 if(denConfigController.DbExists)
                 {
