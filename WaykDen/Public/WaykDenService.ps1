@@ -144,38 +144,6 @@ function Get-WaykDenService
     return $Services
 }
 
-function New-DockerNetwork
-{
-    param(
-        [Parameter(Mandatory=$true)]
-        [string] $Name,
-
-        [switch] $Force
-    )
-
-    $output = $(docker network ls -qf "name=$Name")
-
-    if ([string]::IsNullOrEmpty($output)) {
-        docker network create $Name
-    }
-}
-
-function New-DockerVolume
-{
-    param(
-        [Parameter(Mandatory=$true)]
-        [string] $Name,
-
-        [switch] $Force
-    )
-
-    $output = $(docker volume ls -qf "name=$Name")
-
-    if ([string]::IsNullOrEmpty($output)) {
-        docker volume create $Name
-    }
-}
-
 class DockerHealthcheck
 {
     [string] $Test
@@ -326,7 +294,8 @@ function Start-WaykDen
 function Stop-WaykDen
 {
     param(
-        [string] $Path
+        [string] $Path,
+        [switch] $Remove
     )
 
     $Services = Get-WaykDenService -Path:$Path
@@ -335,6 +304,10 @@ function Stop-WaykDen
     foreach ($Service in $Services) {
         Write-Host "Stopping $($Service.ContainerName)"
         docker stop $Service.ContainerName | Out-Null
+
+        if ($Remove) {
+            docker rm $Service.ContainerName | Out-Null
+        }
     }
 }
 

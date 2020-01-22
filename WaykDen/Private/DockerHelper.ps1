@@ -46,3 +46,35 @@ function Wait-ContainerHealthy
 
     return (Get-ContainerIsHealthy -Name:$Name)
 }
+
+function New-DockerNetwork
+{
+    param(
+        [Parameter(Mandatory=$true)]
+        [string] $Name,
+
+        [switch] $Force
+    )
+
+    $output = $(docker network ls -qf "name=$Name")
+
+    if ([string]::IsNullOrEmpty($output)) {
+        docker network create $Name | Out-Null
+    }
+}
+
+function New-DockerVolume
+{
+    param(
+        [Parameter(Mandatory=$true)]
+        [string] $Name,
+
+        [switch] $Force
+    )
+
+    $output = $(docker volume ls -qf "name=$Name")
+
+    if ([string]::IsNullOrEmpty($output)) {
+        docker volume create $Name | Out-Null
+    }
+}
