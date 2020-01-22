@@ -64,17 +64,22 @@ function Get-WaykDenService
         $TraefikPort = 4000
     }
 
+    $JetServerUrl = "api.jet-relay.net:8080"
     $JetRelayUrl = $config.JetRelayUrl
 
     if ([string]::IsNullOrEmpty($JetRelayUrl)) {
         $JetRelayUrl = "https://api.jet-relay.net"
     }
 
-    $LucidAdminSecret = "Hgte1n3RIS" # generate
-    $LucidAdminUsername = "k8QyMU61rpfFJRbK" # generate
-    $LucidApiKey = "Jui2NzSxBE3GSKx2VsGMAUTj9MB85iAT" # generate
-    $PickyApiKey = "Legv4-AHWX9BSsJ8080vl-T2lDcV9Aj5" # generate
-    $DenApiKey = "PHyJaFk-OkmsfBZEZ-LaaoNwtlSc8HxB" # generate
+    $DenApiKey = $config.DenApiKey
+    $PickyApiKey = $config.PickyApiKey
+    $LucidApiKey = $config.LucidApiKey
+    $LucidAdminUsername = $config.LucidAdminUsername
+    $LucidAdminSecret = $config.LucidAdminSecret
+
+    $PickyUrl = "http://den-picky:12345"
+    $LucidInternalUrl = "http://den-lucid:4242"
+    $DenServerInternalUrl = "http://den-server:10255"
 
     # den-mongo service
     $DenMongo = [DockerService]::new()
@@ -108,39 +113,39 @@ function Get-WaykDenService
         "LUCID_DATABASE__URL" = $MongoUrl;
         "LUCID_TOKEN__ISSUER" = "$ExternalUrl/lucid";
         "LUCID_ACCOUNT__APIKEY" = $DenApiKey;
-        "LUCID_ACCOUNT__LOGIN_URL" = "http://den-server:10255/account/login";
-        "LUCID_ACCOUNT__REFRESH_USER_URL" = "http://den-server:10255/account/refresh";
-        "LUCID_ACCOUNT__FORGOT_PASSWORD_URL" = "http://den-server:10255/account/forgot";
-        "LUCID_ACCOUNT__SEND_ACTIVATION_EMAIL_URL" = "http://den-server:10255/account/activation";
+        "LUCID_ACCOUNT__LOGIN_URL" = "$DenServerInternalUrl/account/login";
+        "LUCID_ACCOUNT__REFRESH_USER_URL" = "$DenServerInternalUrl/account/refresh";
+        "LUCID_ACCOUNT__FORGOT_PASSWORD_URL" = "$DenServerInternalUrl/account/forgot";
+        "LUCID_ACCOUNT__SEND_ACTIVATION_EMAIL_URL" = "$DenServerInternalUrl/account/activation";
     }
-    $DenLucid.Healthcheck = [DockerHealthcheck]::new("curl -sS http://den-lucid:4242/health")
+    $DenLucid.Healthcheck = [DockerHealthcheck]::new("curl -sS $LucidInternalUrl/health")
 
     # den-server service
     $DenServer = [DockerService]::new()
     $DenServer.ContainerName = 'den-server'
     $DenServer.Image = $images[$DenServer.ContainerName]
-    $DenServer.DependsOn = @("den-mongo", 'traefik')
+    $DenServer.DependsOn = @("den-mongo", 'den-traefik')
     $DenServer.Networks += $DenNetwork
     $DenServer.Environment = [ordered]@{
         "PICKY_REALM" = $Realm;
-        "PICKY_URL" = "http://den-picky:12345";
+        "PICKY_URL" = $PickyUrl;
         "PICKY_API_KEY" = $PickyApiKey;
         "DB_URL" = $MongoUrl;
         "AUDIT_TRAILS" = "true";
         "LUCID_AUTHENTICATION_KEY" = $LucidApiKey;
         "DEN_ROUTER_EXTERNAL_URL" = "$ExternalUrl/cow";
-        "LUCID_INTERNAL_URL" = "http://den-lucid:4242";
+        "LUCID_INTERNAL_URL" = $LucidInternalUrl;
         "LUCID_EXTERNAL_URL" = "$ExternalUrl/lucid";
         "DEN_LOGIN_REQUIRED" = "false";
         "DEN_PRIVATE_KEY_FILE" = "/etc/den-server/den-server.key";
         "DEN_PUBLIC_KEY_FILE" = "/etc/den-server/den-router.key";
-        "JET_SERVER_URL" = "api.jet-relay.net:8080";
+        "JET_SERVER_URL" = $JetServerUrl;
         "JET_RELAY_URL" = $JetRelayUrl;
         "DEN_API_KEY" = $DenApiKey;
     }
     $DenServer.Volumes = @("$Path/den-server:/etc/den-server:ro")
     $DenServer.Command = "-m onprem -l trace"
-    $DenServer.Healthcheck = [DockerHealthcheck]::new("curl -sS http://den-server:10255/health")
+    $DenServer.Healthcheck = [DockerHealthcheck]::new("curl -sS $DenServerInternalUrl/health")
 
     # den-traefik service
     $DenTraefik = [DockerService]::new()

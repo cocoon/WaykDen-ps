@@ -1,5 +1,6 @@
 
 . "$PSScriptRoot/../Private/CaseHelper.ps1"
+. "$PSScriptRoot/../Private/RandomGenerator.ps1"
 
 class WaykDenConfig
 {
@@ -7,7 +8,7 @@ class WaykDenConfig
     [string] $Realm
     [string] $ExternalUrl
 
-    # Server
+    # Den Server
     [string] $WaykDenPort
     [string] $Certificate
     [string] $PrivateKey
@@ -35,6 +36,13 @@ class WaykDenConfig
     # Redis
     [string] $RedisUrl
     [string] $RedisPassword
+
+    # Internal API keys
+    [string] $DenApiKey
+    [string] $PickyApiKey
+    [string] $LucidApiKey
+    [string] $LucidAdminUsername
+    [string] $LucidAdminSecret
 }
 
 function Set-ConfigString
@@ -121,6 +129,12 @@ function New-WaykDenConfig
     New-Item -Path $Path -ItemType "Directory" -Force | Out-Null
     $ConfigFile = Join-Path $Path "wayk-den.yml"
 
+    $DenApiKey = New-RandomString -Length 32
+    $PickyApiKey = New-RandomString -Length 32
+    $LucidApiKey = New-RandomString -Length 32
+    $LucidAdminUsername = New-RandomString -Length 16
+    $LucidAdminSecret = New-RandomString -Length 10
+
     $config = [WaykDenConfig]::new()
     
     # Mandatory
@@ -155,6 +169,13 @@ function New-WaykDenConfig
     # Redis
     Set-ConfigString $config 'RedisUrl' $RedisUrl
     Set-ConfigString $config 'RedisPassword' $RedisPassword
+
+    # Internal API keys
+    Set-ConfigString $config 'DenApiKey' $DenApiKey
+    Set-ConfigString $config 'PickyApiKey' $PickyApiKey
+    Set-ConfigString $config 'LucidApiKey' $LucidApiKey
+    Set-ConfigString $config 'LucidAdminUsername' $LucidAdminUsername
+    Set-ConfigString $config 'LucidAdminSecret' $LucidAdminSecret
 
     ConvertTo-Yaml -Data (ConvertTo-SnakeCaseObject -Object $config) -OutFile $ConfigFile -Force:$Force
 }
@@ -293,6 +314,13 @@ function Get-WaykDenConfig
     # Redis
     $config.RedisUrl = Get-ConfigString $yaml 'RedisUrl'
     $config.RedisPassword = Get-ConfigString $yaml 'RedisPassword'
+
+    # Internal API keys
+    $config.DenApiKey = Get-ConfigString $yaml 'DenApiKey'
+    $config.PickyApiKey = Get-ConfigString $yaml 'PickyApiKey'
+    $config.LucidApiKey = Get-ConfigString $yaml 'LucidApiKey'
+    $config.LucidAdminUsername = Get-ConfigString $yaml 'LucidAdminUsername'
+    $config.LucidAdminSecret = Get-ConfigString $yaml 'LucidAdminSecret'
 
     return $config
 }
