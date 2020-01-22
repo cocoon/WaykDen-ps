@@ -1,5 +1,6 @@
 
 . "$PSScriptRoot/../Private/PlatformHelper.ps1"
+. "$PSScriptRoot/../Private/DockerHelper.ps1"
 
 function Get-WaykDenImage
 {
@@ -263,26 +264,6 @@ function Get-DockerRunCommand
     return $cmd
 }
 
-function Get-ContainerExists
-{
-    param(
-        [string] $Name
-    )
-
-    $exists = $(docker ps -aqf "name=$Name")
-    return ![string]::IsNullOrEmpty($exists)
-}
-
-function Get-ContainerIsRunning
-{
-    param(
-        [string] $Name
-    )
-
-    $running = $(docker inspect -f '{{.State.Running}}' $Name)
-    return $running -Match 'true'
-}
-
 function Start-DockerService
 {
     param(
@@ -303,6 +284,10 @@ function Start-DockerService
     $RunCommand = (Get-DockerRunCommand -Service $Service) | Join-String -Separator " "
 
     $id = Invoke-Expression $RunCommand
+
+    if ($Service.Healthcheck) {
+        Wait-ContainerHealthy -Name $Service.ContainerName | Out-Null
+    }
 
     if (Get-ContainerIsRunning -Name $Service.ContainerName){
         Write-Host "$($Service.ContainerName) successfully started"
