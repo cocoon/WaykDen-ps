@@ -72,12 +72,10 @@
     # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
     FunctionsToExport = @('Connect-WaykDenUser', 'Disconnect-WaykDenUser',
     'New-WaykDenConfig', 'Set-WaykDenConfig', 'Get-WaykDenConfig',
-    'Start-WaykDen')
+    'Start-WaykDen', 'Stop-WaykDen', 'Restart-WaykDen')
     
     # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
     CmdletsToExport = @(
-    'Remove-WaykDenConfig', 'Export-WaykDenConfig',
-    'Stop-WaykDen', 'Restart-WaykDen',
     'Set-WaykDenWebCertificate')
     
     # Variables to export from this module
