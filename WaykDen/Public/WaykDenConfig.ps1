@@ -35,6 +35,29 @@ class WaykDenConfig
     [string] $RedisPassword
 }
 
+function ConvertTo-PascalCase
+{
+    [OutputType('System.String')]
+    param(
+        [Parameter(Position=0)]
+        [string] $Value
+    )
+
+    # https://devblogs.microsoft.com/oldnewthing/20190909-00/?p=102844
+    return [regex]::replace($Value.ToLower(), '(^|_)(.)', { $args[0].Groups[2].Value.ToUpper()})
+}
+
+function ConvertTo-SnakeCase
+{
+    [OutputType('System.String')]
+    param(
+        [Parameter(Position=0)]
+        [string] $Value
+    )
+
+    return [regex]::replace($Value, '([A-Z])(.)', { '_' + $args[0].Groups[0].Value.ToLower() }).Trim('_')
+}
+
 function Set-ConfigString
 {
     param(
@@ -60,6 +83,8 @@ function Get-ConfigString
         [Parameter(Position=1)]
         [string] $Name
     )
+
+    $Name = ConvertTo-SnakeCase -Value $Name
 
     if (![string]::IsNullOrEmpty($yaml.$Name)) {
         return ($yaml.$Name | Out-String).Trim()
@@ -151,8 +176,18 @@ function New-WaykDenConfig
     # Redis
     Set-ConfigString $config 'RedisUrl' $RedisUrl
     Set-ConfigString $config 'RedisPassword' $RedisPassword
+
+    $snake_obj = New-Object -TypeName 'PSObject'
+
+    $config.PSObject.Properties | ForEach-Object {
+        $name = ConvertTo-SnakeCase -Value ($_.Name | Out-String).Trim()
+        $value = ($_.Value | Out-String).Trim()
+        if (![string]::IsNullOrEmpty($value)) {
+            $snake_obj | Add-Member -MemberType NoteProperty -Name $name -Value $value
+        }
+    }
  
-    ConvertTo-Yaml $config -OutFile $ConfigFile -Force:$Force
+    ConvertTo-Yaml $snake_obj -OutFile $ConfigFile -Force:$Force
 }
 
 function Set-WaykDenConfig
@@ -237,7 +272,19 @@ function Set-WaykDenConfig
     Set-ConfigString $config 'RedisUrl' $RedisUrl
     Set-ConfigString $config 'RedisPassword' $RedisPassword
 
-    ConvertTo-Yaml $config -OutFile $ConfigFile -Force
+    $snake_obj = New-Object -TypeName 'PSObject'
+
+    $config.PSObject.Properties | ForEach-Object {
+        $name = ConvertTo-SnakeCase -Value ($_.Name | Out-String).Trim()
+        $value = ($_.Value | Out-String).Trim()
+        if (![string]::IsNullOrEmpty($value)) {
+            $snake_obj | Add-Member -MemberType NoteProperty -Name $name -Value $value
+        }
+    }
+ 
+    ConvertTo-Yaml $snake_obj -OutFile $ConfigFile -Force:$Force
+
+    #ConvertTo-Yaml $config -OutFile $ConfigFile -Force
 }
 
 function Get-WaykDenConfig
