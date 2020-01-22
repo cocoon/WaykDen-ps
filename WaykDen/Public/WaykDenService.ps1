@@ -35,6 +35,10 @@ function Get-WaykDenService
 
     $config = Get-WaykDenConfig -Path:$Path
 
+    if ([string]::IsNullOrEmpty($Path)) {
+        $Path = Get-Location
+    }
+
     $images = Get-WaykDenImage
 
     $Realm = $config.Realm
@@ -58,6 +62,12 @@ function Get-WaykDenService
 
     if ([string]::IsNullOrEmpty($TraefikPort)) {
         $TraefikPort = 4000
+    }
+
+    $JetRelayUrl = $config.JetRelayUrl
+
+    if ([string]::IsNullOrEmpty($JetRelayUrl)) {
+        $JetRelayUrl = "https://api.jet-relay.net"
     }
 
     $LucidAdminSecret = "Hgte1n3RIS" # generate
@@ -114,21 +124,22 @@ function Get-WaykDenService
     $DenServer.Environment = [ordered]@{
         "PICKY_REALM" = $Realm;
         "PICKY_URL" = "http://den-picky:12345";
-        "PICKY_APIKEY" = $PickyApiKey;
+        "PICKY_API_KEY" = $PickyApiKey;
+        "DB_URL" = $MongoUrl;
         "AUDIT_TRAILS" = "true";
-        "LUCID_AUTHENTICATION_KEY" = $PickyApiKey;
-        "DEN_ROUTER_EXTERNAL_URL" = "wss://$ExternalUrl/cow";
+        "LUCID_AUTHENTICATION_KEY" = $LucidApiKey;
+        "DEN_ROUTER_EXTERNAL_URL" = "$ExternalUrl/cow";
         "LUCID_INTERNAL_URL" = "http://den-lucid:4242";
         "LUCID_EXTERNAL_URL" = "$ExternalUrl/lucid";
         "DEN_LOGIN_REQUIRED" = "false";
         "DEN_PRIVATE_KEY_FILE" = "/etc/den-server/den-server.key";
         "DEN_PUBLIC_KEY_FILE" = "/etc/den-server/den-router.key";
         "JET_SERVER_URL" = "api.jet-relay.net:8080";
-        "JET_RELAY_URL" = $config.JetRelayUrl;
+        "JET_RELAY_URL" = $JetRelayUrl;
         "DEN_API_KEY" = $DenApiKey;
     }
-    $DenServer.Volumes = @("den-server:/etc/den-server:ro")
-    $DenServer.Command = "--db_url $MongoUrl -m onprem -l trace"
+    $DenServer.Volumes = @("$Path/den-server:/etc/den-server:ro")
+    $DenServer.Command = "-m onprem -l trace"
     $DenServer.Healthcheck = [DockerHealthcheck]::new("curl -sS http://den-server:10255/health")
 
     # den-traefik service
@@ -136,7 +147,7 @@ function Get-WaykDenService
     $DenTraefik.ContainerName = 'den-traefik'
     $DenTraefik.Image = $images[$DenTraefik.ContainerName]
     $DenTraefik.Networks += $DenNetwork
-    $DenTraefik.Volumes = @("traefik:/etc/traefik")
+    $DenTraefik.Volumes = @("$Path/traefik:/etc/traefik")
     $DenTraefik.Command = "--file --configFile=/etc/traefik/traefik.toml"
     $DenTraefik.Ports = @("4000:$TraefikPort")
 
