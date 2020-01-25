@@ -1,6 +1,7 @@
 
 . "$PSScriptRoot/../Private/PlatformHelper.ps1"
 . "$PSScriptRoot/../Private/DockerHelper.ps1"
+. "$PSScriptRoot/../Private/TraefikHelper.ps1"
 
 function Get-WaykDenImage
 {
@@ -45,30 +46,30 @@ function Get-WaykDenService
     $ExternalUrl = $config.ExternalUrl
 
     if ([string]::IsNullOrEmpty($DenNetwork)) {
-        $DenNetwork = "den-network"
+        $DenNetwork = $DenNetworkDefault
     }
 
     $MongoUrl = $config.MongoUrl
 
     if ([string]::IsNullOrEmpty($MongoUrl)) {
-        $MongoUrl = "mongodb://den-mongo:27017"
+        $MongoUrl = $MongoUrlDefault
     }
 
     if ([string]::IsNullOrEmpty($MongoVolume)) {
-        $MongoVolume = "den-mongodata"
+        $MongoVolume = $MongoVolumeDefault
     }
 
     $TraefikPort = $config.WaykDenPort
 
     if ([string]::IsNullOrEmpty($TraefikPort)) {
-        $TraefikPort = 4000
+        $TraefikPort = $WaykDenPortDefault
     }
 
-    $JetServerUrl = "api.jet-relay.net:8080"
+    $JetServerUrl = $JetServerUrlDefault
     $JetRelayUrl = $config.JetRelayUrl
 
     if ([string]::IsNullOrEmpty($JetRelayUrl)) {
-        $JetRelayUrl = "https://api.jet-relay.net"
+        $JetRelayUrl = $JetRelayUrlDefault
     }
 
     $DenApiKey = $config.DenApiKey
@@ -77,9 +78,13 @@ function Get-WaykDenService
     $LucidAdminUsername = $config.LucidAdminUsername
     $LucidAdminSecret = $config.LucidAdminSecret
 
-    $PickyUrl = "http://den-picky:12345"
-    $LucidInternalUrl = "http://den-lucid:4242"
-    $DenServerInternalUrl = "http://den-server:10255"
+    $DenPickyUrl = $DenPickyUrlDefault
+    $DenLucidUrl = $DenLucidUrlDefault
+    $DenServerUrl = $DenServerUrlDefault
+    
+    #$TraefikToml = New-TraefikToml -Port $TraefikPort -Protocol 'https' `
+    #    -DenLucidUrl $DenLucidUrl -DenRouterUrl $DenRouterUrl -DenServerUrl $DenServerUrl `
+    #    -CertFile "/etc/traefik/traefik.pem" -KeyFile "/etc/traefik/traefik.key"
 
     # den-mongo service
     $DenMongo = [DockerService]::new()
@@ -113,12 +118,12 @@ function Get-WaykDenService
         "LUCID_DATABASE__URL" = $MongoUrl;
         "LUCID_TOKEN__ISSUER" = "$ExternalUrl/lucid";
         "LUCID_ACCOUNT__APIKEY" = $DenApiKey;
-        "LUCID_ACCOUNT__LOGIN_URL" = "$DenServerInternalUrl/account/login";
-        "LUCID_ACCOUNT__REFRESH_USER_URL" = "$DenServerInternalUrl/account/refresh";
-        "LUCID_ACCOUNT__FORGOT_PASSWORD_URL" = "$DenServerInternalUrl/account/forgot";
-        "LUCID_ACCOUNT__SEND_ACTIVATION_EMAIL_URL" = "$DenServerInternalUrl/account/activation";
+        "LUCID_ACCOUNT__LOGIN_URL" = "$DenServerUrl/account/login";
+        "LUCID_ACCOUNT__REFRESH_USER_URL" = "$DenServerUrl/account/refresh";
+        "LUCID_ACCOUNT__FORGOT_PASSWORD_URL" = "$DenServerUrl/account/forgot";
+        "LUCID_ACCOUNT__SEND_ACTIVATION_EMAIL_URL" = "$DenServerUrl/account/activation";
     }
-    $DenLucid.Healthcheck = [DockerHealthcheck]::new("curl -sS $LucidInternalUrl/health")
+    $DenLucid.Healthcheck = [DockerHealthcheck]::new("curl -sS $DenLucidUrl/health")
 
     # den-server service
     $DenServer = [DockerService]::new()
@@ -128,13 +133,13 @@ function Get-WaykDenService
     $DenServer.Networks += $DenNetwork
     $DenServer.Environment = [ordered]@{
         "PICKY_REALM" = $Realm;
-        "PICKY_URL" = $PickyUrl;
+        "PICKY_URL" = $DenPickyUrl;
         "PICKY_API_KEY" = $PickyApiKey;
         "DB_URL" = $MongoUrl;
         "AUDIT_TRAILS" = "true";
         "LUCID_AUTHENTICATION_KEY" = $LucidApiKey;
         "DEN_ROUTER_EXTERNAL_URL" = "$ExternalUrl/cow";
-        "LUCID_INTERNAL_URL" = $LucidInternalUrl;
+        "LUCID_INTERNAL_URL" = $DenLucidUrl;
         "LUCID_EXTERNAL_URL" = "$ExternalUrl/lucid";
         "DEN_LOGIN_REQUIRED" = "false";
         "DEN_PRIVATE_KEY_FILE" = "/etc/den-server/den-server.key";
@@ -145,7 +150,7 @@ function Get-WaykDenService
     }
     $DenServer.Volumes = @("$Path/den-server:/etc/den-server:ro")
     $DenServer.Command = "-m onprem -l trace"
-    $DenServer.Healthcheck = [DockerHealthcheck]::new("curl -sS $DenServerInternalUrl/health")
+    $DenServer.Healthcheck = [DockerHealthcheck]::new("curl -sS $DenServerUrl/health")
 
     # den-traefik service
     $DenTraefik = [DockerService]::new()

@@ -2,6 +2,16 @@
 . "$PSScriptRoot/../Private/CaseHelper.ps1"
 . "$PSScriptRoot/../Private/RandomGenerator.ps1"
 
+$DenNetworkDefault = "den-network"
+$MongoUrlDefault = "mongodb://den-mongo:27017"
+$MongoVolumeDefault = "den-mongodata"
+$WaykDenPortDefault = 4000
+$JetServerUrlDefault = "api.jet-relay.net:8080"
+$JetRelayUrlDefault = "https://api.jet-relay.net"
+$DenPickyUrlDefault = "http://den-picky:12345"
+$DenLucidUrlDefault = "http://den-lucid:4242"
+$DenServerUrlDefault = "http://den-server:10255"
+
 class WaykDenConfig
 {
     # Mandatory
