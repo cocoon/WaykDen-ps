@@ -30,11 +30,8 @@ function Get-WaykDenService
 {
     param(
         [string] $Path,
-        [string] $DenNetwork,
-        [string] $MongoVolume
+        [WaykDenConfig] $Config
     )
-
-    $config = Get-WaykDenConfig -Path:$Path
 
     if ([string]::IsNullOrEmpty($Path)) {
         $Path = Get-Location
@@ -44,33 +41,11 @@ function Get-WaykDenService
 
     $Realm = $config.Realm
     $ExternalUrl = $config.ExternalUrl
-
-    if ([string]::IsNullOrEmpty($DenNetwork)) {
-        $DenNetwork = $DenNetworkDefault
-    }
-
-    $MongoUrl = $config.MongoUrl
-
-    if ([string]::IsNullOrEmpty($MongoUrl)) {
-        $MongoUrl = $MongoUrlDefault
-    }
-
-    if ([string]::IsNullOrEmpty($MongoVolume)) {
-        $MongoVolume = $MongoVolumeDefault
-    }
-
     $TraefikPort = $config.WaykDenPort
-
-    if ([string]::IsNullOrEmpty($TraefikPort)) {
-        $TraefikPort = $WaykDenPortDefault
-    }
-
-    $JetServerUrl = $JetServerUrlDefault
+    $MongoUrl = $config.MongoUrl
+    $DenNetwork = $config.DockerNetwork
+    $JetServerUrl = $config.JetServerUrl
     $JetRelayUrl = $config.JetRelayUrl
-
-    if ([string]::IsNullOrEmpty($JetRelayUrl)) {
-        $JetRelayUrl = $JetRelayUrlDefault
-    }
 
     $DenApiKey = $config.DenApiKey
     $PickyApiKey = $config.PickyApiKey
@@ -78,13 +53,9 @@ function Get-WaykDenService
     $LucidAdminUsername = $config.LucidAdminUsername
     $LucidAdminSecret = $config.LucidAdminSecret
 
-    $DenPickyUrl = $DenPickyUrlDefault
-    $DenLucidUrl = $DenLucidUrlDefault
-    $DenServerUrl = $DenServerUrlDefault
-    
-    #$TraefikToml = New-TraefikToml -Port $TraefikPort -Protocol 'https' `
-    #    -DenLucidUrl $DenLucidUrl -DenRouterUrl $DenRouterUrl -DenServerUrl $DenServerUrl `
-    #    -CertFile "/etc/traefik/traefik.pem" -KeyFile "/etc/traefik/traefik.key"
+    $DenPickyUrl = $config.DenPickyUrl
+    $DenLucidUrl = $config.DenLucidUrl
+    $DenServerUrl = $config.DenServerUrl
 
     # den-mongo service
     $DenMongo = [DockerService]::new()
@@ -142,8 +113,8 @@ function Get-WaykDenService
         "LUCID_INTERNAL_URL" = $DenLucidUrl;
         "LUCID_EXTERNAL_URL" = "$ExternalUrl/lucid";
         "DEN_LOGIN_REQUIRED" = "false";
-        "DEN_PRIVATE_KEY_FILE" = "/etc/den-server/den-server.key";
-        "DEN_PUBLIC_KEY_FILE" = "/etc/den-server/den-router.key";
+        "DEN_PRIVATE_KEY_FILE" = "/etc/den-server/den-private.key";
+        "DEN_PUBLIC_KEY_FILE" = "/etc/den-server/den-public.pem";
         "JET_SERVER_URL" = $JetServerUrl;
         "JET_RELAY_URL" = $JetRelayUrl;
         "DEN_API_KEY" = $DenApiKey;
@@ -257,7 +228,8 @@ function Start-DockerService
 {
     param(
         [DockerService] $Service,
-        [switch] $Remove
+        [switch] $Remove,
+        [switch] $Verbose
     )
 
     if (Get-ContainerExists -Name $Service.ContainerName) {
@@ -271,6 +243,10 @@ function Start-DockerService
     }
 
     $RunCommand = (Get-DockerRunCommand -Service $Service) | Join-String -Separator " "
+
+    if ($Verbose) {
+        Write-Host $RunCommand
+    }
 
     $id = Invoke-Expression $RunCommand
 
@@ -288,12 +264,14 @@ function Start-DockerService
 function Start-WaykDen
 {
     param(
-        [string] $Path
+        [string] $Path,
+        [switch] $Verbose
     )
 
-    $DenNetwork = "den-network"
-    $MongoVolume = "den-mongodata"
-    $Services = Get-WaykDenService -Path:$Path -DenNetwork $DenNetwork -MongoVolume $MongoVolume
+    $config = Get-WaykDenConfig -Path:$Path
+    Expand-WaykDenConfig -Config $config
+
+    $Services = Get-WaykDenService -Path:$Path -Config $config
 
     # pull docker images
     foreach ($service in $services) {
@@ -301,14 +279,14 @@ function Start-WaykDen
     }
 
     # create docker network
-    New-DockerNetwork -Name $DenNetwork -Force
+    New-DockerNetwork -Name $config.DockerNetwork -Force
 
     # create docker volume
-    New-DockerVolume -Name $MongoVolume -Force
+    New-DockerVolume -Name $config.MongoVolume -Force
 
     # start containers
     foreach ($Service in $Services) {
-        Start-DockerService -Service $Service -Remove
+        Start-DockerService -Service $Service -Remove -Verbose:$Verbose
     }
 }
 
@@ -319,7 +297,10 @@ function Stop-WaykDen
         [switch] $Remove
     )
 
-    $Services = Get-WaykDenService -Path:$Path
+    $config = Get-WaykDenConfig -Path:$Path
+    Expand-WaykDenConfig -Config $config
+
+    $Services = Get-WaykDenService -Path:$Path -Config $config
 
     # stop containers
     foreach ($Service in $Services) {

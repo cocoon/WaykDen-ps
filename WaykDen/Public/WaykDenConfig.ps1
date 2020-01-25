@@ -1,16 +1,7 @@
 
+. "$PSScriptRoot/../Private/RsaHelper.ps1"
 . "$PSScriptRoot/../Private/CaseHelper.ps1"
 . "$PSScriptRoot/../Private/RandomGenerator.ps1"
-
-$DenNetworkDefault = "den-network"
-$MongoUrlDefault = "mongodb://den-mongo:27017"
-$MongoVolumeDefault = "den-mongodata"
-$WaykDenPortDefault = 4000
-$JetServerUrlDefault = "api.jet-relay.net:8080"
-$JetRelayUrlDefault = "https://api.jet-relay.net"
-$DenPickyUrlDefault = "http://den-picky:12345"
-$DenLucidUrlDefault = "http://den-lucid:4242"
-$DenServerUrlDefault = "http://den-server:10255"
 
 class WaykDenConfig
 {
@@ -53,6 +44,15 @@ class WaykDenConfig
     [string] $LucidApiKey
     [string] $LucidAdminUsername
     [string] $LucidAdminSecret
+
+    # Internal settings
+    [string] $DockerNetwork
+    [string] $DockerPlatform
+    [string] $MongoVolume
+    [string] $JetServerUrl
+    [string] $DenPickyUrl
+    [string] $DenLucidUrl
+    [string] $DenServerUrl
 }
 
 function Set-ConfigString
@@ -88,6 +88,87 @@ function Get-ConfigString
     } else {
         return $null
     }
+}
+
+function Expand-WaykDenConfig
+{
+    param(
+        [WaykDenConfig] $Config
+    )
+
+    $DockerNetworkDefault = "den-network"
+    $DockerPlatformDefault = "linux"
+    $MongoUrlDefault = "mongodb://den-mongo:27017"
+    $MongoVolumeDefault = "den-mongodata"
+    $WaykDenPortDefault = 4000
+    $JetServerUrlDefault = "api.jet-relay.net:8080"
+    $JetRelayUrlDefault = "https://api.jet-relay.net"
+    $DenPickyUrlDefault = "http://den-picky:12345"
+    $DenLucidUrlDefault = "http://den-lucid:4242"
+    $DenServerUrlDefault = "http://den-server:10255"
+
+    if ([string]::IsNullOrEmpty($config.DockerNetwork)) {
+        $config.DockerNetwork = $DockerNetworkDefault
+    }
+
+    if ([string]::IsNullOrEmpty($config.DockerPlatform)) {
+        $config.DockerPlatform = $DockerPlatformDefault
+    }
+
+    if ([string]::IsNullOrEmpty($config.WaykDenPort)) {
+        $config.WaykDenPort = $WaykDenPortDefault
+    }
+
+    if ([string]::IsNullOrEmpty($config.MongoUrl)) {
+        $config.MongoUrl = $MongoUrlDefault
+    }
+
+    if ([string]::IsNullOrEmpty($config.MongoVolume)) {
+        $config.MongoVolume = $MongoVolumeDefault
+    }
+
+    if ([string]::IsNullOrEmpty($config.JetServerUrl)) {
+        $config.JetServerUrl = $JetServerUrlDefault
+    }
+
+    if ([string]::IsNullOrEmpty($config.JetRelayUrl)) {
+        $config.JetRelayUrl = $JetRelayUrlDefault
+    }
+
+    if ([string]::IsNullOrEmpty($config.DenPickyUrl)) {
+        $config.DenPickyUrl = $DenPickyUrlDefault
+    }
+
+    if ([string]::IsNullOrEmpty($config.DenLucidUrl)) {
+        $config.DenLucidUrl = $DenLucidUrlDefault
+    }
+
+    if ([string]::IsNullOrEmpty($config.DenServerUrl)) {
+        $config.DenServerUrl = $DenServerUrlDefault
+    }
+}
+
+function Export-TraefikToml()
+{
+    param(
+        [string] $Path
+    )
+
+    if ([string]::IsNullOrEmpty($Path)) {
+        $Path = Get-Location
+    }
+
+    $config = Get-WaykDenConfig -Path:$Path
+    Expand-WaykDenConfig $config
+
+    $TraefikPath = Join-Path $Path "traefik"
+    New-Item -Path $TraefikPath -ItemType "Directory" -Force | Out-Null
+
+    $TraefikTomlFile = Join-Path $TraefikPath "traefik.toml"
+
+    $TraefikToml = New-TraefikToml -Port $config.WaykDenPort -Protocol 'http' `
+        -DenLucidUrl $config.DenLucidUrl -DenRouterUrl $config.DenRouterUrl -DenServerUrl $config.DenServerUrl
+    Set-Content -Path $TraefikTomlFile -Value $TraefikToml
 }
 
 function New-WaykDenConfig
@@ -145,6 +226,18 @@ function New-WaykDenConfig
     $LucidAdminUsername = New-RandomString -Length 16
     $LucidAdminSecret = New-RandomString -Length 10
 
+    $DenServerPath = Join-Path $Path "den-server"
+    $DenPublicKeyFile = Join-Path $DenServerPath "den-public.pem"
+    $DenPrivateKeyFile = Join-Path $DenServerPath "den-private.key"
+    New-Item -Path $DenServerPath -ItemType "Directory" -Force | Out-Null
+
+    if (!((Test-Path -Path $DenPublicKeyFile -PathType "Leaf") -and
+          (Test-Path -Path $DenPrivateKeyFile -PathType "Leaf"))) {
+            $KeyPair = New-RsaKeyPair -KeySize 2048
+            Set-Content -Path $DenPublicKeyFile -Value $KeyPair.PublicKey -Force
+            Set-Content -Path $DenPrivateKeyFile -Value $KeyPair.PrivateKey -Force
+    }
+
     $config = [WaykDenConfig]::new()
     
     # Mandatory
@@ -188,6 +281,8 @@ function New-WaykDenConfig
     Set-ConfigString $config 'LucidAdminSecret' $LucidAdminSecret
 
     ConvertTo-Yaml -Data (ConvertTo-SnakeCaseObject -Object $config) -OutFile $ConfigFile -Force:$Force
+
+    Export-TraefikToml -Path:$Path
 }
 
 function Set-WaykDenConfig
@@ -273,6 +368,8 @@ function Set-WaykDenConfig
     Set-ConfigString $config 'RedisPassword' $RedisPassword
  
     ConvertTo-Yaml -Data (ConvertTo-SnakeCaseObject -Object $config) -OutFile $ConfigFile -Force:$Force
+
+    Export-TraefikToml -Path:$Path
 }
 
 function Get-WaykDenConfig
