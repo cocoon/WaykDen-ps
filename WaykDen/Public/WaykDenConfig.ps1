@@ -370,7 +370,8 @@ function Set-WaykDenConfig
     Set-ConfigString $config 'RedisUrl' $RedisUrl
     Set-ConfigString $config 'RedisPassword' $RedisPassword
  
-    ConvertTo-Yaml -Data (ConvertTo-SnakeCaseObject -Object $config) -OutFile $ConfigFile -Force:$Force
+    # always force overwriting wayk-den.yml when updating the config file
+    ConvertTo-Yaml -Data (ConvertTo-SnakeCaseObject -Object $config) -OutFile $ConfigFile -Force
 
     Export-TraefikToml -Path:$Path
 }
