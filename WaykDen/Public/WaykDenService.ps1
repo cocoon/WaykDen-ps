@@ -5,7 +5,11 @@
 
 function Get-WaykDenImage
 {
-    $images = if (!(Get-IsWindows)) {
+    param(
+        [string] $Platform
+    )
+
+    $images = if ($Platform -ne "windows") {
         [ordered]@{ # Linux containers
             "den-mongo" = "library/mongo:4.1-bionic";
             "den-lucid" = "devolutions/den-lucid:3.6.5-buster";
@@ -37,12 +41,14 @@ function Get-WaykDenService
         $Path = Get-Location
     }
 
-    $images = Get-WaykDenImage
+    $Platform = $config.DockerPlatform
+    $images = Get-WaykDenImage -Platform:$Platform
 
     $Realm = $config.Realm
     $ExternalUrl = $config.ExternalUrl
     $TraefikPort = $config.WaykDenPort
     $MongoUrl = $config.MongoUrl
+    $MongoVolume = $config.MongoVolume
     $DenNetwork = $config.DockerNetwork
     $JetServerUrl = $config.JetServerUrl
     $JetRelayUrl = $config.JetRelayUrl
@@ -57,17 +63,31 @@ function Get-WaykDenService
     $DenLucidUrl = $config.DenLucidUrl
     $DenServerUrl = $config.DenServerUrl
 
+    if ($Platform -eq "linux") {
+        $PathSeparator = "/"
+        $MongoDataPath = "/data/db"
+        $TraefikDataPath = "/etc/traefik"
+        $DenServerDataPath = "/etc/den-server"
+    } else {
+        $PathSeparator = "\"
+        $MongoDataPath = "c:\data\db"
+        $TraefikDataPath = "c:\etc\traefik"
+        $DenServerDataPath = "c:\den-server"
+    }
+
     # den-mongo service
     $DenMongo = [DockerService]::new()
     $DenMongo.ContainerName = 'den-mongo'
     $DenMongo.Image = $images[$DenMongo.ContainerName]
+    $DenMongo.Platform = $Platform
     $DenMongo.Networks += $DenNetwork
-    $DenMongo.Volumes = @("$MongoVolume`:/data/db")
+    $DenMongo.Volumes = @("$MongoVolume`:$MongoDataPath")
 
     # den-picky service
     $DenPicky = [DockerService]::new()
     $DenPicky.ContainerName = 'den-picky'
     $DenPicky.Image = $images[$DenPicky.ContainerName]
+    $DenPicky.Platform = $Platform
     $DenPicky.DependsOn = @("den-mongo")
     $DenPicky.Networks += $DenNetwork
     $DenPicky.Environment = [ordered]@{
@@ -80,6 +100,7 @@ function Get-WaykDenService
     $DenLucid = [DockerService]::new()
     $DenLucid.ContainerName = 'den-lucid'
     $DenLucid.Image = $images[$DenLucid.ContainerName]
+    $DenLucid.Platform = $Platform
     $DenLucid.DependsOn = @("den-mongo")
     $DenLucid.Networks += $DenNetwork
     $DenLucid.Environment = [ordered]@{
@@ -100,6 +121,7 @@ function Get-WaykDenService
     $DenServer = [DockerService]::new()
     $DenServer.ContainerName = 'den-server'
     $DenServer.Image = $images[$DenServer.ContainerName]
+    $DenServer.Platform = $Platform
     $DenServer.DependsOn = @("den-mongo", 'den-traefik')
     $DenServer.Networks += $DenNetwork
     $DenServer.Environment = [ordered]@{
@@ -113,13 +135,13 @@ function Get-WaykDenService
         "LUCID_INTERNAL_URL" = $DenLucidUrl;
         "LUCID_EXTERNAL_URL" = "$ExternalUrl/lucid";
         "DEN_LOGIN_REQUIRED" = "false";
-        "DEN_PRIVATE_KEY_FILE" = "/etc/den-server/den-private.key";
-        "DEN_PUBLIC_KEY_FILE" = "/etc/den-server/den-public.pem";
+        "DEN_PUBLIC_KEY_FILE" = @($DenServerDataPath, "den-public.pem") | Join-String -Separator $PathSeparator
+        "DEN_PRIVATE_KEY_FILE" = @($DenServerDataPath, "den-private.key") | Join-String -Separator $PathSeparator
         "JET_SERVER_URL" = $JetServerUrl;
         "JET_RELAY_URL" = $JetRelayUrl;
         "DEN_API_KEY" = $DenApiKey;
     }
-    $DenServer.Volumes = @("$Path/den-server:/etc/den-server:ro")
+    $DenServer.Volumes = @("$Path/den-server:$DenServerDataPath`:ro")
     $DenServer.Command = "-m onprem -l trace"
     $DenServer.Healthcheck = [DockerHealthcheck]::new("curl -sS $DenServerUrl/health")
 
@@ -127,12 +149,20 @@ function Get-WaykDenService
     $DenTraefik = [DockerService]::new()
     $DenTraefik.ContainerName = 'den-traefik'
     $DenTraefik.Image = $images[$DenTraefik.ContainerName]
+    $DenTraefik.Platform = $Platform
     $DenTraefik.Networks += $DenNetwork
-    $DenTraefik.Volumes = @("$Path/traefik:/etc/traefik")
-    $DenTraefik.Command = "--file --configFile=/etc/traefik/traefik.toml"
+    $DenTraefik.Volumes = @("$Path/traefik:$TraefikDataPath")
+    $DenTraefik.Command = ("--file --configFile=" + $(@($TraefikDataPath, "traefik.toml") | Join-String -Separator $PathSeparator))
     $DenTraefik.Ports = @("4000:$TraefikPort")
 
     $Services = @($DenMongo, $DenPicky, $DenLucid, $DenServer, $DenTraefik)
+
+    if ($config.SyslogServer) {
+        foreach ($Service in $Services) {
+            $Service.Logging = [DockerLogging]::new($config.SyslogServer)
+        }
+    }
+
     return $Services
 }
 
@@ -153,9 +183,25 @@ class DockerHealthcheck
     }
 }
 
+class DockerLogging
+{
+    [string] $Driver
+    [Hashtable] $Options
+
+    DockerLogging([string] $SyslogAddress) {
+        $this.Driver = "syslog"
+        $this.Options = [ordered]@{
+            'syslog-format' = 'rfc5424'
+            'syslog-facility' = 'daemon'
+            'syslog-address' = $SyslogAddress
+        }
+    }
+}
+
 class DockerService
 {
     [string] $Image
+    [string] $Platform
     [string] $ContainerName
     [string[]] $DependsOn
     [string[]] $Networks
@@ -164,6 +210,7 @@ class DockerService
     [string] $Command
     [string[]] $Ports
     [DockerHealthcheck] $Healthcheck
+    [DockerLogging] $Logging
 }
 
 function Get-DockerRunCommand
@@ -173,7 +220,14 @@ function Get-DockerRunCommand
         [DockerService] $Service
     )
 
-    $cmd = @('docker', 'run', '-d')
+    $cmd = @('docker', 'run')
+
+    $cmd += "-d" # detached
+
+    if (Get-IsWindows) {
+        $Platform = $Service.Platform
+        $cmd += "--platform=$Platform"
+    }
 
     if ($Service.Networks) {
         foreach ($Network in $Service.Networks) {
@@ -216,6 +270,21 @@ function Get-DockerRunCommand
             $cmd += "--health-start-period=" + $Healthcheck.StartPeriod
         }
         $cmd += $("--health-cmd=`'" + $Healthcheck.Test + "`'")
+    }
+
+    if ($Service.Logging) {
+        $Logging = $Service.Logging
+        $cmd += '--log-driver=' + $Logging.Driver
+
+        $options = @()
+        $Logging.Options.GetEnumerator() | foreach {
+            $key = $_.Key
+            $val = $_.Value
+            $options += "$key=$val"
+        }
+
+        $options = $options | Join-String -Separator ","
+        $cmd += "--log-opt=" + $options
     }
 
     $cmd += @('--name', $Service.ContainerName, $Service.Image)

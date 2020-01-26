@@ -97,7 +97,6 @@ function Expand-WaykDenConfig
     )
 
     $DockerNetworkDefault = "den-network"
-    $DockerPlatformDefault = "linux"
     $MongoUrlDefault = "mongodb://den-mongo:27017"
     $MongoVolumeDefault = "den-mongodata"
     $WaykDenPortDefault = 4000
@@ -112,7 +111,11 @@ function Expand-WaykDenConfig
     }
 
     if ([string]::IsNullOrEmpty($config.DockerPlatform)) {
-        $config.DockerPlatform = $DockerPlatformDefault
+        if (Get-IsWindows) {
+            $config.DockerPlatform = "windows"
+        } else {
+            $config.DockerPlatform = "linux"
+        }
     }
 
     if ([string]::IsNullOrEmpty($config.WaykDenPort)) {
