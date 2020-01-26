@@ -19,7 +19,7 @@ function Get-WaykDenImage
         }
     } else {
         [ordered]@{ # Windows containers
-            "den-mongo" = "devolutions/mongo:4.0.12-windowsservercore-ltsc2019";
+            "den-mongo" = "devolutions/mongo:4.0.12-servercore-ltsc2019";
             "den-lucid" = "devolutions/den-lucid:3.6.5-servercore-ltsc2019";
             "den-picky" = "devolutions/picky:4.2.1-servercore-ltsc2019";
             "den-server" = "devolutions/den-server:1.9.0-servercore-ltsc2019";
@@ -135,8 +135,8 @@ function Get-WaykDenService
         "LUCID_INTERNAL_URL" = $DenLucidUrl;
         "LUCID_EXTERNAL_URL" = "$ExternalUrl/lucid";
         "DEN_LOGIN_REQUIRED" = "false";
-        "DEN_PUBLIC_KEY_FILE" = @($DenServerDataPath, "den-public.pem") | Join-String -Separator $PathSeparator
-        "DEN_PRIVATE_KEY_FILE" = @($DenServerDataPath, "den-private.key") | Join-String -Separator $PathSeparator
+        "DEN_PUBLIC_KEY_FILE" = @($DenServerDataPath, "den-public.pem") -Join $PathSeparator
+        "DEN_PRIVATE_KEY_FILE" = @($DenServerDataPath, "den-private.key") -Join $PathSeparator
         "JET_SERVER_URL" = $JetServerUrl;
         "JET_RELAY_URL" = $JetRelayUrl;
         "DEN_API_KEY" = $DenApiKey;
@@ -152,7 +152,7 @@ function Get-WaykDenService
     $DenTraefik.Platform = $Platform
     $DenTraefik.Networks += $DenNetwork
     $DenTraefik.Volumes = @("$Path/traefik:$TraefikDataPath")
-    $DenTraefik.Command = ("--file --configFile=" + $(@($TraefikDataPath, "traefik.toml") | Join-String -Separator $PathSeparator))
+    $DenTraefik.Command = ("--file --configFile=" + $(@($TraefikDataPath, "traefik.toml") -Join $PathSeparator))
     $DenTraefik.Ports = @("4000:$TraefikPort")
 
     $Services = @($DenMongo, $DenPicky, $DenLucid, $DenServer, $DenTraefik)
@@ -224,11 +224,6 @@ function Get-DockerRunCommand
 
     $cmd += "-d" # detached
 
-    if (Get-IsWindows) {
-        $Platform = $Service.Platform
-        $cmd += "--platform=$Platform"
-    }
-
     if ($Service.Networks) {
         foreach ($Network in $Service.Networks) {
             $cmd += "--network=$Network"
@@ -283,7 +278,7 @@ function Get-DockerRunCommand
             $options += "$key=$val"
         }
 
-        $options = $options | Join-String -Separator ","
+        $options = $options -Join ","
         $cmd += "--log-opt=" + $options
     }
 
@@ -311,7 +306,7 @@ function Start-DockerService
         }
     }
 
-    $RunCommand = (Get-DockerRunCommand -Service $Service) | Join-String -Separator " "
+    $RunCommand = (Get-DockerRunCommand -Service $Service) -Join " "
 
     if ($Verbose) {
         Write-Host $RunCommand
@@ -340,6 +335,7 @@ function Start-WaykDen
     $config = Get-WaykDenConfig -Path:$Path
     Expand-WaykDenConfig -Config $config
 
+    $Platform = $config.DockerPlatform
     $Services = Get-WaykDenService -Path:$Path -Config $config
 
     # pull docker images
@@ -348,7 +344,7 @@ function Start-WaykDen
     }
 
     # create docker network
-    New-DockerNetwork -Name $config.DockerNetwork -Force
+    New-DockerNetwork -Name $config.DockerNetwork -Platform $Platform -Force
 
     # create docker volume
     New-DockerVolume -Name $config.MongoVolume -Force

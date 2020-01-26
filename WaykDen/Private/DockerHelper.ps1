@@ -47,19 +47,35 @@ function Wait-ContainerHealthy
     return (Get-ContainerIsHealthy -Name:$Name)
 }
 
+function Get-DockerNetworkExists
+{
+    param(
+        [Parameter(Mandatory=$true)]
+        [string] $Name
+    )
+
+    $exists = $(docker network ls -qf "name=$Name")
+    return ![string]::IsNullOrEmpty($exists)
+}
+
 function New-DockerNetwork
 {
     param(
         [Parameter(Mandatory=$true)]
         [string] $Name,
-
+        [string] $Platform,
         [switch] $Force
     )
 
-    $output = $(docker network ls -qf "name=$Name")
+    if (!(Get-DockerNetworkExists -Name:$Name)) {
+        $cmd = @('network', 'create')
+        
+        if ($Platform -eq 'windows') {
+            $cmd += @('-d', 'nat')
+        }
 
-    if ([string]::IsNullOrEmpty($output)) {
-        docker network create $Name | Out-Null
+        $cmd += $Name # network name
+        $Id = docker $cmd
     }
 }
 
