@@ -129,12 +129,12 @@ function Get-WaykDenService
         "PICKY_URL" = $DenPickyUrl;
         "PICKY_APIKEY" = $PickyApiKey; # will be changed to PICKY_API_KEY
         "DB_URL" = $MongoUrl; # will be changed to MONGO_URL
-        "AUDIT_TRAILS" = "true";
+        "AUDIT_TRAILS" = "true"; # TODO: handle cloud/on-prem
         "LUCID_AUTHENTICATION_KEY" = $LucidApiKey;
         "DEN_ROUTER_EXTERNAL_URL" = "$ExternalUrl/cow";
         "LUCID_INTERNAL_URL" = $DenLucidUrl;
         "LUCID_EXTERNAL_URL" = "$ExternalUrl/lucid";
-        "DEN_LOGIN_REQUIRED" = "false";
+        "DEN_LOGIN_REQUIRED" = "false"; # TODO: handle cloud/on-prem
         "DEN_PUBLIC_KEY_FILE" = @($DenServerDataPath, "den-public.pem") -Join $PathSeparator
         "DEN_PRIVATE_KEY_FILE" = @($DenServerDataPath, "den-private.key") -Join $PathSeparator
         "JET_SERVER_URL" = $JetServerUrl;
@@ -142,8 +142,52 @@ function Get-WaykDenService
         "DEN_API_KEY" = $DenApiKey;
     }
     $DenServer.Volumes = @("$Path/den-server:$DenServerDataPath`:ro")
-    $DenServer.Command = "-m onprem -l trace"
+    $DenServer.Command = "-m onprem -l trace" # TODO: handle cloud/on-prem
     $DenServer.Healthcheck = [DockerHealthcheck]::new("curl -sS $DenServerUrl/health")
+
+    if (![string]::IsNullOrEmpty($config.LdapServerUrl)) {
+        $DenServer.Environment['LDAP_SERVER_URL'] = $config.LdapServerUrl
+    }
+
+    if (![string]::IsNullOrEmpty($config.LdapUsername)) {
+        $DenServer.Environment['LDAP_USERNAME'] = $config.LdapUsername
+    }
+
+    if (![string]::IsNullOrEmpty($config.LdapPassword)) {
+        $DenServer.Environment['LDAP_PASSWORD'] = $config.LdapPassword
+    }
+
+    if (![string]::IsNullOrEmpty($config.LdapUserGroup)) {
+        $DenServer.Environment['LDAP_USER_GROUP'] = $config.LdapUserGroup
+    }
+
+    if (![string]::IsNullOrEmpty($config.LdapServerType)) {
+        $DenServer.Environment['LDAP_SERVER_TYPE'] = $config.LdapServerType
+    }
+
+    if (![string]::IsNullOrEmpty($config.LdapBaseDn)) {
+        $DenServer.Environment['LDAP_BASE_DN'] = $config.LdapBaseDn
+    }
+
+    if (![string]::IsNullOrEmpty($config.NatsUrl)) {
+        $DenServer.Environment['NATS_HOST'] = $config.NatsUrl
+    }
+
+    if (![string]::IsNullOrEmpty($config.NatsUsername)) {
+        $DenServer.Environment['NATS_USERNAME'] = $config.NatsUsername
+    }
+
+    if (![string]::IsNullOrEmpty($config.NatsPassword)) {
+        $DenServer.Environment['NATS_PASSWORD'] = $config.NatsPassword
+    }
+
+    if (![string]::IsNullOrEmpty($config.RedisUrl)) {
+        $DenServer.Environment['REDIS_HOST'] = $config.RedisUrl
+    }
+
+    if (![string]::IsNullOrEmpty($config.RedisPassword)) {
+        $DenServer.Environment['REDIS_PASSWORD'] = $config.RedisPassword
+    }
 
     # den-traefik service
     $DenTraefik = [DockerService]::new()

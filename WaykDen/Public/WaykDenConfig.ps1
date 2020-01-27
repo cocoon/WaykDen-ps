@@ -11,8 +11,6 @@ class WaykDenConfig
 
     # Den Server
     [string] $WaykDenPort
-    [string] $Certificate
-    [string] $PrivateKey
     [string] $SyslogServer
 
     # MongoDB
@@ -192,8 +190,6 @@ function New-WaykDenConfig
 
         # Server
         [string] $WaykDenPort,
-        [string] $Certificate,
-        [string] $PrivateKey,
         [string] $SyslogServer,
 
         # MongoDB
@@ -255,8 +251,6 @@ function New-WaykDenConfig
 
     # Server
     Set-ConfigString $config 'WaykDenPort' $WaykDenPort
-    Set-ConfigString $config 'Certificate' $Certificate
-    Set-ConfigString $config 'PrivateKey' $PrivateKey
     Set-ConfigString $config 'SyslogServer' $SyslogServer
 
     # MongoDB
@@ -304,8 +298,6 @@ function Set-WaykDenConfig
 
         # Server
         [string] $WaykDenPort,
-        [string] $Certificate,
-        [string] $PrivateKey,
         [string] $SyslogServer,
 
         # MongoDB
@@ -349,8 +341,6 @@ function Set-WaykDenConfig
 
     # Server
     Set-ConfigString $config 'WaykDenPort' $WaykDenPort
-    Set-ConfigString $config 'Certificate' $Certificate
-    Set-ConfigString $config 'PrivateKey' $PrivateKey
     Set-ConfigString $config 'SyslogServer' $SyslogServer
 
     # MongoDB
@@ -405,8 +395,6 @@ function Get-WaykDenConfig
 
     # Server
     $config.WaykDenPort = Get-ConfigString $yaml 'WaykDenPort'
-    $config.Certificate = Get-ConfigString $yaml 'Certificate'
-    $config.PrivateKey = Get-ConfigString $yaml 'PrivateKey'
     $config.SyslogServer = Get-ConfigString $yaml 'SyslogServer'
 
     # MongoDB
