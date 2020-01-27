@@ -53,6 +53,7 @@ class WaykDenConfig
     [string] $DenPickyUrl
     [string] $DenLucidUrl
     [string] $DenServerUrl
+    [string] $DenRouterUrl
 }
 
 function Set-ConfigString
@@ -105,6 +106,7 @@ function Expand-WaykDenConfig
     $DenPickyUrlDefault = "http://den-picky:12345"
     $DenLucidUrlDefault = "http://den-lucid:4242"
     $DenServerUrlDefault = "http://den-server:10255"
+    $DenRouterUrlDefault = "http://den-server:4491"
 
     if ([string]::IsNullOrEmpty($config.DockerNetwork)) {
         $config.DockerNetwork = $DockerNetworkDefault
@@ -148,6 +150,10 @@ function Expand-WaykDenConfig
 
     if ([string]::IsNullOrEmpty($config.DenServerUrl)) {
         $config.DenServerUrl = $DenServerUrlDefault
+    }
+
+    if ([string]::IsNullOrEmpty($config.DenRouterUrl)) {
+        $config.DenRouterUrl = $DenRouterUrlDefault
     }
 }
 

@@ -127,8 +127,8 @@ function Get-WaykDenService
     $DenServer.Environment = [ordered]@{
         "PICKY_REALM" = $Realm;
         "PICKY_URL" = $DenPickyUrl;
-        "PICKY_API_KEY" = $PickyApiKey;
-        "DB_URL" = $MongoUrl;
+        "PICKY_APIKEY" = $PickyApiKey; # will be changed to PICKY_API_KEY
+        "DB_URL" = $MongoUrl; # will be changed to MONGO_URL
         "AUDIT_TRAILS" = "true";
         "LUCID_AUTHENTICATION_KEY" = $LucidApiKey;
         "DEN_ROUTER_EXTERNAL_URL" = "$ExternalUrl/cow";
@@ -337,6 +337,9 @@ function Start-WaykDen
 
     $Platform = $config.DockerPlatform
     $Services = Get-WaykDenService -Path:$Path -Config $config
+
+    # update traefik.toml
+    Export-TraefikToml -Path:$Path
 
     # pull docker images
     foreach ($service in $services) {
