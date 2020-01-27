@@ -6,8 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Docker.DotNet" Version="3.125.2" />
-    <PackageReference Include="LiteDB" Version="4.1.4" />
     <PackageReference Include="PemUtils" Version="3.0.0.81" />
     <PackageReference Include="YamlDotNet" Version="8.1.0" />
     <PackageReference Include="PowerShellStandard.Library" Version="5.1.0" />
