@@ -1,17 +1,16 @@
 
 . "$PSScriptRoot/../Private/RsaHelper.ps1"
 . "$PSScriptRoot/../Private/CaseHelper.ps1"
+. "$PSScriptRoot/../Private/TraefikHelper.ps1"
 . "$PSScriptRoot/../Private/RandomGenerator.ps1"
 
 class WaykDenConfig
 {
-    # Mandatory
+    # Server
     [string] $Realm
     [string] $ExternalUrl
-
-    # Den Server
-    [string] $WaykDenPort
-    [string] $SyslogServer
+    [string] $ListenerUrl
+    [string] $ServerMode
 
     # MongoDB
     [string] $MongoUrl
@@ -46,6 +45,7 @@ class WaykDenConfig
     # Internal settings
     [string] $DockerNetwork
     [string] $DockerPlatform
+    [string] $SyslogServer
     [string] $MongoVolume
     [string] $JetServerUrl
     [string] $DenPickyUrl
@@ -98,7 +98,8 @@ function Expand-WaykDenConfig
     $DockerNetworkDefault = "den-network"
     $MongoUrlDefault = "mongodb://den-mongo:27017"
     $MongoVolumeDefault = "den-mongodata"
-    $WaykDenPortDefault = 4000
+    $ServerModeDefault = "Private"
+    $ListenerUrlDefault = "http://0.0.0.0:4000"
     $JetServerUrlDefault = "api.jet-relay.net:8080"
     $JetRelayUrlDefault = "https://api.jet-relay.net"
     $DenPickyUrlDefault = "http://den-picky:12345"
@@ -118,8 +119,12 @@ function Expand-WaykDenConfig
         }
     }
 
-    if ([string]::IsNullOrEmpty($config.WaykDenPort)) {
-        $config.WaykDenPort = $WaykDenPortDefault
+    if ([string]::IsNullOrEmpty($config.ServerMode)) {
+        $config.ServerMode = $ServerModeDefault
+    }
+
+    if ([string]::IsNullOrEmpty($config.ListenerUrl)) {
+        $config.ListenerUrl = $ListenerUrlDefault
     }
 
     if ([string]::IsNullOrEmpty($config.MongoUrl)) {
@@ -173,7 +178,7 @@ function Export-TraefikToml()
 
     $TraefikTomlFile = Join-Path $TraefikPath "traefik.toml"
 
-    $TraefikToml = New-TraefikToml -Port $config.WaykDenPort -Protocol 'http' `
+    $TraefikToml = New-TraefikToml -Platform $config.DockerPlatform -ListenerUrl $config.ListenerUrl `
         -DenLucidUrl $config.DenLucidUrl -DenRouterUrl $config.DenRouterUrl -DenServerUrl $config.DenServerUrl
     Set-Content -Path $TraefikTomlFile -Value $TraefikToml
 }
@@ -183,14 +188,13 @@ function New-WaykDenConfig
     param(
         [string] $Path,
     
+        # Server
         [Parameter(Mandatory=$true)]
         [string] $Realm,
         [Parameter(Mandatory=$true)]
         [string] $ExternalUrl,
-
-        # Server
-        [string] $WaykDenPort,
-        [string] $SyslogServer,
+        [string] $ListenerUrl,
+        [string] $ServerMode,
 
         # MongoDB
         [string] $MongoUrl,
@@ -245,13 +249,11 @@ function New-WaykDenConfig
 
     $config = [WaykDenConfig]::new()
     
-    # Mandatory
+    # Server
     Set-ConfigString $config 'Realm' $Realm
     Set-ConfigString $config 'ExternalUrl' $ExternalUrl
-
-    # Server
-    Set-ConfigString $config 'WaykDenPort' $WaykDenPort
-    Set-ConfigString $config 'SyslogServer' $SyslogServer
+    Set-ConfigString $config 'ListenerUrl' $ListenerUrl
+    Set-ConfigString $config 'ServerMode' $ServerMode
 
     # MongoDB
     Set-ConfigString $config 'MongoUrl' $MongoUrl
@@ -296,9 +298,9 @@ function Set-WaykDenConfig
         [string] $Realm,
         [string] $ExternalUrl,
 
-        # Server
-        [string] $WaykDenPort,
-        [string] $SyslogServer,
+        # Serverß
+        [string] $ListenerUrl,
+        [string] $ServerMode,
 
         # MongoDB
         [string] $MongoUrl,
@@ -335,13 +337,11 @@ function Set-WaykDenConfig
     New-Item -Path $Path -ItemType "Directory" -Force | Out-Null
     $ConfigFile = Join-Path $Path "wayk-den.yml"
 
-    # Mandatory
+    # Server
     Set-ConfigString $config 'Realm' $Realm
     Set-ConfigString $config 'ExternalUrl' $ExternalUrl
-
-    # Server
-    Set-ConfigString $config 'WaykDenPort' $WaykDenPort
-    Set-ConfigString $config 'SyslogServer' $SyslogServer
+    Set-ConfigString $config 'ListenerUrl' $ListenerUrl
+    Set-ConfigString $config 'ServerMode' $ServerMode
 
     # MongoDB
     Set-ConfigString $config 'MongoUrl' $MongoUrl
@@ -389,13 +389,11 @@ function Get-WaykDenConfig
 
     $config = [WaykDenConfig]::new()
     
-    # Mandatory
+    # Server
     $config.Realm = Get-ConfigString $yaml 'Realm'
     $config.ExternalUrl = Get-ConfigString $yaml 'ExternalUrl'
-
-    # Server
-    $config.WaykDenPort = Get-ConfigString $yaml 'WaykDenPort'
-    $config.SyslogServer = Get-ConfigString $yaml 'SyslogServer'
+    $config.ListenerUrl = Get-ConfigString $yaml 'ListenerUrl'
+    $config.ServerMode = Get-ConfigString $yaml 'ServerMode'
 
     # MongoDB
     $config.MongoUrl = Get-ConfigString $yaml 'MongoUrl'

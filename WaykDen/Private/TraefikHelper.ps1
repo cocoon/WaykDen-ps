@@ -3,19 +3,31 @@ function New-TraefikToml
 {
     [OutputType('System.String')]
     param(
-        [string] $Port,
-        [string] $Protocol,
+        [string] $Platform,
+        [string] $ListenerUrl,
         [string] $DenLucidUrl,
         [string] $DenRouterUrl,
-        [string] $DenServerUrl,
-        [string] $CertFile,
-        [string] $KeyFile
+        [string] $DenServerUrl
     )
+
+    $url = [System.Uri]::new($ListenerUrl)
+    $Port = $url.Port
+    $Protocol = $url.Scheme
+
+    if ($Platform -eq "linux") {
+        $PathSeparator = "/"
+        $TraefikDataPath = "/etc/traefik"
+    } else {
+        $PathSeparator = "\"
+        $TraefikDataPath = "c:\etc\traefik"
+    }
+
+    # note: .pem file should contain leaf cert + intermediate CA cert, in that order.
 
     $TraefikPort = $Port
     $TraefikEntrypoint = $Protocol
-    $TraefikCertFile = $CertFile
-    $TraefikKeyFile = $KeyFile
+    $TraefikCertFile = $(@($TraefikDataPath, "den-server.pem") -Join $PathSeparator)
+    $TraefikKeyFile = $(@($TraefikDataPath, "den-server.key") -Join $PathSeparator)
 
     $templates = @()
 

@@ -46,7 +46,10 @@ function Get-WaykDenService
 
     $Realm = $config.Realm
     $ExternalUrl = $config.ExternalUrl
-    $TraefikPort = $config.WaykDenPort
+
+    $url = [System.Uri]::new($config.ListenerUrl)
+    $TraefikPort = $url.Port
+
     $MongoUrl = $config.MongoUrl
     $MongoVolume = $config.MongoVolume
     $DenNetwork = $config.DockerNetwork
@@ -129,12 +132,11 @@ function Get-WaykDenService
         "PICKY_URL" = $DenPickyUrl;
         "PICKY_APIKEY" = $PickyApiKey; # will be changed to PICKY_API_KEY
         "DB_URL" = $MongoUrl; # will be changed to MONGO_URL
-        "AUDIT_TRAILS" = "true"; # TODO: handle cloud/on-prem
         "LUCID_AUTHENTICATION_KEY" = $LucidApiKey;
         "DEN_ROUTER_EXTERNAL_URL" = "$ExternalUrl/cow";
         "LUCID_INTERNAL_URL" = $DenLucidUrl;
         "LUCID_EXTERNAL_URL" = "$ExternalUrl/lucid";
-        "DEN_LOGIN_REQUIRED" = "false"; # TODO: handle cloud/on-prem
+        "DEN_LOGIN_REQUIRED" = "false";
         "DEN_PUBLIC_KEY_FILE" = @($DenServerDataPath, "den-public.pem") -Join $PathSeparator
         "DEN_PRIVATE_KEY_FILE" = @($DenServerDataPath, "den-private.key") -Join $PathSeparator
         "JET_SERVER_URL" = $JetServerUrl;
@@ -142,8 +144,13 @@ function Get-WaykDenService
         "DEN_API_KEY" = $DenApiKey;
     }
     $DenServer.Volumes = @("$Path/den-server:$DenServerDataPath`:ro")
-    $DenServer.Command = "-m onprem -l trace" # TODO: handle cloud/on-prem
+    $DenServer.Command = "-l trace"
     $DenServer.Healthcheck = [DockerHealthcheck]::new("curl -sS $DenServerUrl/health")
+
+    if ($config.ServerMode -eq 'Private') {
+        $DenServer.Environment['AUDIT_TRAILS'] = "true"
+        $DenServer.Command += " -m onprem" # TODO: use environment variable
+    }
 
     if (![string]::IsNullOrEmpty($config.LdapServerUrl)) {
         $DenServer.Environment['LDAP_SERVER_URL'] = $config.LdapServerUrl
@@ -197,7 +204,7 @@ function Get-WaykDenService
     $DenTraefik.Networks += $DenNetwork
     $DenTraefik.Volumes = @("$Path/traefik:$TraefikDataPath")
     $DenTraefik.Command = ("--file --configFile=" + $(@($TraefikDataPath, "traefik.toml") -Join $PathSeparator))
-    $DenTraefik.Ports = @("4000:$TraefikPort")
+    $DenTraefik.Ports = @("$TraefikPort`:$TraefikPort")
 
     $Services = @($DenMongo, $DenPicky, $DenLucid, $DenServer, $DenTraefik)
 
