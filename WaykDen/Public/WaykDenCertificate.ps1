@@ -1,11 +1,14 @@
 
+. "$PSScriptRoot/../Private/CertificateHelper.ps1"
+
 function Import-WaykDenCertificate
 {
     param(
         [string] $Path,
 
         [string] $CertificateFile,
-        [string] $PrivateKeyFile
+        [string] $PrivateKeyFile,
+        [string] $Password
     )
 
     if ([string]::IsNullOrEmpty($Path)) {
@@ -14,8 +17,11 @@ function Import-WaykDenCertificate
 
     $config = Get-WaykDenConfig -Path:$Path
 
-    $CertificateData = Get-Content -Raw -Path $CertificateFile
-    $PrivateKeyData = Get-Content -Raw -Path $PrivateKeyFile
+    $result = Get-PemCertificate -CertificateFile:$CertificateFile `
+        -PrivateKeyFile:$PrivateKeyFile -Password:$Password
+        
+    $CertificateData = $result.Certificate
+    $PrivateKeyData = $result.PrivateKey
 
     $TraefikPath = Join-Path $Path "traefik"
     New-Item -Path $TraefikPath -ItemType "Directory" -Force | Out-Null
