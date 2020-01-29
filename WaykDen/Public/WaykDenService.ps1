@@ -80,6 +80,13 @@ function Get-WaykDenService
         $DenServerDataPath = "c:\den-server"
     }
 
+    $ServerCount = 1
+    if (![string]::IsNullOrEmpty($config.ServerCount)) {
+        if ([int] $config.ServerCount -gt 1) {
+            $ServerCount = [int] $config.ServerCount
+        }
+    }
+
     $Services = @()
 
     # den-mongo service
@@ -91,7 +98,7 @@ function Get-WaykDenService
     $DenMongo.Volumes = @("$MongoVolume`:$MongoDataPath")
     $Services += $DenMongo
 
-    if ($config.ServerMode -eq 'Public') {
+    if (($config.ServerMode -eq 'Public') -or ($ServerCount -gt 1)) {
 
         if ([string]::IsNullOrEmpty($config.NatsUrl)) {
             $config.NatsUrl = "den-nats"
@@ -246,7 +253,17 @@ function Get-WaykDenService
         $DenServer.Environment['REDIS_PASSWORD'] = $config.RedisPassword
     }
 
-    $Services += $DenServer
+    if ($ServerCount -gt 1) {
+        1 .. $ServerCount | % {
+            $ServerIndex = $_
+            $Instance = [DockerService]::new([DockerService]$DenServer)
+            $Instance.ContainerName = "den-server-$ServerIndex"
+            $Instance.Healthcheck.Test = $Instance.Healthcheck.Test -Replace "den-server", $Instance.ContainerName
+            $Services += $Instance
+        }
+    } else {
+        $Services += $DenServer
+    }
 
     # den-traefik service
     $DenTraefik = [DockerService]::new()
@@ -276,12 +293,22 @@ class DockerHealthcheck
     [string] $Retries
     [string] $StartPeriod
 
+    DockerHealthcheck() { }
+
     DockerHealthcheck([string] $Test) {
         $this.Test = $Test
         $this.Interval = "5s"
         $this.Timeout = "2s"
         $this.Retries = "5"
         $this.StartPeriod = "1s"
+    }
+
+    DockerHealthcheck([DockerHealthcheck] $other) {
+        $this.Test = $other.Test
+        $this.Interval = $other.Interval
+        $this.Timeout = $other.Timeout
+        $this.Retries = $other.Retries
+        $this.StartPeriod = $other.StartPeriod
     }
 }
 
@@ -290,12 +317,22 @@ class DockerLogging
     [string] $Driver
     [Hashtable] $Options
 
+    DockerLogging() { }
+
     DockerLogging([string] $SyslogAddress) {
         $this.Driver = "syslog"
         $this.Options = [ordered]@{
             'syslog-format' = 'rfc5424'
             'syslog-facility' = 'daemon'
             'syslog-address' = $SyslogAddress
+        }
+    }
+
+    DockerLogging([DockerLogging] $other) {
+        $this.Driver = $other.Driver
+
+        if ($other.Options) {
+            $this.Options = $other.Options.Clone()
         }
     }
 }
@@ -313,6 +350,44 @@ class DockerService
     [string[]] $Ports
     [DockerHealthcheck] $Healthcheck
     [DockerLogging] $Logging
+
+    DockerService() { }
+
+    DockerService([DockerService] $other) {
+        $this.Image = $other.Image
+        $this.Platform = $other.Platform
+        $this.ContainerName = $other.ContainerName
+
+        if ($other.DependsOn) {
+            $this.DependsOn = $other.DependsOn.Clone()
+        }
+
+        if ($other.Networks) {
+            $this.Networks = $other.Networks.Clone()
+        }
+
+        if ($other.Environment) {
+            $this.Environment = $other.Environment.Clone()
+        }
+
+        if ($other.Volumes) {
+            $this.Volumes = $other.Volumes.Clone()
+        }
+    
+        $this.Command = $other.Command
+
+        if ($other.Ports) {
+            $this.Ports = $other.Ports.Clone()
+        }
+
+        if ($other.Healthcheck) {
+            $this.Healthcheck = [DockerHealthcheck]::new($other.Healthcheck)
+        }
+     
+        if ($other.Logging)  {
+            $this.Logging = [DockerLogging]::new($other.Logging)
+        }
+    }
 }
 
 function Get-DockerRunCommand

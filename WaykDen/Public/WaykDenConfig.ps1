@@ -11,6 +11,7 @@ class WaykDenConfig
     [string] $ExternalUrl
     [string] $ListenerUrl
     [string] $ServerMode
+    [string] $ServerCount
 
     # MongoDB
     [string] $MongoUrl
@@ -123,6 +124,10 @@ function Expand-WaykDenConfig
         $config.ServerMode = $ServerModeDefault
     }
 
+    if ([string]::IsNullOrEmpty($config.ServerCount)) {
+        $config.ServerCount = 1
+    }
+
     if ([string]::IsNullOrEmpty($config.ListenerUrl)) {
         $config.ListenerUrl = $ListenerUrlDefault
     }
@@ -195,6 +200,7 @@ function New-WaykDenConfig
         [string] $ExternalUrl,
         [string] $ListenerUrl,
         [string] $ServerMode,
+        [string] $ServerCount,
 
         # MongoDB
         [string] $MongoUrl,
@@ -254,6 +260,7 @@ function New-WaykDenConfig
     Set-ConfigString $config 'ExternalUrl' $ExternalUrl
     Set-ConfigString $config 'ListenerUrl' $ListenerUrl
     Set-ConfigString $config 'ServerMode' $ServerMode
+    Set-ConfigString $config 'ServerCount' $ServerCount
 
     # MongoDB
     Set-ConfigString $config 'MongoUrl' $MongoUrl
@@ -298,9 +305,10 @@ function Set-WaykDenConfig
         [string] $Realm,
         [string] $ExternalUrl,
 
-        # Serverß
+        # Server
         [string] $ListenerUrl,
         [string] $ServerMode,
+        [string] $ServerCount,
 
         # MongoDB
         [string] $MongoUrl,
@@ -342,6 +350,7 @@ function Set-WaykDenConfig
     Set-ConfigString $config 'ExternalUrl' $ExternalUrl
     Set-ConfigString $config 'ListenerUrl' $ListenerUrl
     Set-ConfigString $config 'ServerMode' $ServerMode
+    Set-ConfigString $config 'ServerCount' $ServerCount
 
     # MongoDB
     Set-ConfigString $config 'MongoUrl' $MongoUrl
@@ -394,6 +403,7 @@ function Get-WaykDenConfig
     $config.ExternalUrl = Get-ConfigString $yaml 'ExternalUrl'
     $config.ListenerUrl = Get-ConfigString $yaml 'ListenerUrl'
     $config.ServerMode = Get-ConfigString $yaml 'ServerMode'
+    $config.ServerCount = Get-ConfigString $yaml 'ServerCount'
 
     # MongoDB
     $config.MongoUrl = Get-ConfigString $yaml 'MongoUrl'
