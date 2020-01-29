@@ -16,6 +16,8 @@ function Get-WaykDenImage
             "den-picky" = "devolutions/picky:4.2.1-buster";
             "den-server" = "devolutions/den-server:1.9.0-buster";
             "den-traefik" = "library/traefik:1.7";
+            "den-redis" = "library/redis:5.0-buster";
+            "den-nats" = "library/nats:2.1-linux";
         }
     } else {
         [ordered]@{ # Windows containers
@@ -78,6 +80,8 @@ function Get-WaykDenService
         $DenServerDataPath = "c:\den-server"
     }
 
+    $Services = @()
+
     # den-mongo service
     $DenMongo = [DockerService]::new()
     $DenMongo.ContainerName = 'den-mongo'
@@ -85,6 +89,48 @@ function Get-WaykDenService
     $DenMongo.Platform = $Platform
     $DenMongo.Networks += $DenNetwork
     $DenMongo.Volumes = @("$MongoVolume`:$MongoDataPath")
+    $Services += $DenMongo
+
+    if ($config.ServerMode -eq 'Public') {
+
+        if ([string]::IsNullOrEmpty($config.NatsUrl)) {
+            $config.NatsUrl = "den-nats"
+        }
+
+        if ([string]::IsNullOrEmpty($config.NatsUsername)) {
+            $config.NatsUsername = New-RandomString -Length 16
+        }
+
+        if ([string]::IsNullOrEmpty($config.NatsPassword)) {
+            $config.NatsPassword = New-RandomString -Length 16
+        }
+    
+        if ([string]::IsNullOrEmpty($config.RedisUrl)) {
+            $config.RedisUrl = "den-redis"
+        }
+
+        if ([string]::IsNullOrEmpty($config.RedisPassword)) {
+            $config.RedisPassword = New-RandomString -Length 16
+        }
+
+        # den-nats service
+        $DenNats = [DockerService]::new()
+        $DenNats.ContainerName = 'den-nats'
+        $DenNats.Image = $images[$DenNats.ContainerName]
+        $DenNats.Platform = $Platform
+        $DenNats.Networks += $DenNetwork
+        $DenNats.Command = "--user $($config.NatsUsername) --pass $($config.NatsPassword)"
+        $Services += $DenNats
+
+        # den-redis service
+        $DenRedis = [DockerService]::new()
+        $DenRedis.ContainerName = 'den-redis'
+        $DenRedis.Image = $images[$DenRedis.ContainerName]
+        $DenRedis.Platform = $Platform
+        $DenRedis.Networks += $DenNetwork
+        $DenRedis.Command = "redis-server --requirepass $($config.RedisPassword)"
+        $Services += $DenRedis
+    }
 
     # den-picky service
     $DenPicky = [DockerService]::new()
@@ -98,6 +144,7 @@ function Get-WaykDenService
         "PICKY_API_KEY" = $PickyApiKey;
         "PICKY_DATABASE_URL" = $MongoUrl;
     }
+    $Services += $DenPicky
 
     # den-lucid service
     $DenLucid = [DockerService]::new()
@@ -119,6 +166,7 @@ function Get-WaykDenService
         "LUCID_ACCOUNT__SEND_ACTIVATION_EMAIL_URL" = "$DenServerUrl/account/activation";
     }
     $DenLucid.Healthcheck = [DockerHealthcheck]::new("curl -sS $DenLucidUrl/health")
+    $Services += $DenLucid
 
     # den-server service
     $DenServer = [DockerService]::new()
@@ -149,7 +197,9 @@ function Get-WaykDenService
 
     if ($config.ServerMode -eq 'Private') {
         $DenServer.Environment['AUDIT_TRAILS'] = "true"
-        $DenServer.Command += " -m onprem" # TODO: use environment variable
+        $DenServer.Command += " -m onprem"
+    } elseif ($config.ServerMode -eq 'Public') {
+        $DenServer.Command += " -m cloud"
     }
 
     if (![string]::IsNullOrEmpty($config.LdapServerUrl)) {
@@ -196,6 +246,8 @@ function Get-WaykDenService
         $DenServer.Environment['REDIS_PASSWORD'] = $config.RedisPassword
     }
 
+    $Services += $DenServer
+
     # den-traefik service
     $DenTraefik = [DockerService]::new()
     $DenTraefik.ContainerName = 'den-traefik'
@@ -205,8 +257,7 @@ function Get-WaykDenService
     $DenTraefik.Volumes = @("$Path/traefik:$TraefikDataPath")
     $DenTraefik.Command = ("--file --configFile=" + $(@($TraefikDataPath, "traefik.toml") -Join $PathSeparator))
     $DenTraefik.Ports = @("$TraefikPort`:$TraefikPort")
-
-    $Services = @($DenMongo, $DenPicky, $DenLucid, $DenServer, $DenTraefik)
+    $Services += $DenTraefik
 
     if ($config.SyslogServer) {
         foreach ($Service in $Services) {
