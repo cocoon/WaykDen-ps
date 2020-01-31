@@ -289,111 +289,6 @@ function Get-WaykDenService
     return $Services
 }
 
-class DockerHealthcheck
-{
-    [string] $Test
-    [string] $Interval
-    [string] $Timeout
-    [string] $Retries
-    [string] $StartPeriod
-
-    DockerHealthcheck() { }
-
-    DockerHealthcheck([string] $Test) {
-        $this.Test = $Test
-        $this.Interval = "5s"
-        $this.Timeout = "2s"
-        $this.Retries = "5"
-        $this.StartPeriod = "1s"
-    }
-
-    DockerHealthcheck([DockerHealthcheck] $other) {
-        $this.Test = $other.Test
-        $this.Interval = $other.Interval
-        $this.Timeout = $other.Timeout
-        $this.Retries = $other.Retries
-        $this.StartPeriod = $other.StartPeriod
-    }
-}
-
-class DockerLogging
-{
-    [string] $Driver
-    [Hashtable] $Options
-
-    DockerLogging() { }
-
-    DockerLogging([string] $SyslogAddress) {
-        $this.Driver = "syslog"
-        $this.Options = [ordered]@{
-            'syslog-format' = 'rfc5424'
-            'syslog-facility' = 'daemon'
-            'syslog-address' = $SyslogAddress
-        }
-    }
-
-    DockerLogging([DockerLogging] $other) {
-        $this.Driver = $other.Driver
-
-        if ($other.Options) {
-            $this.Options = $other.Options.Clone()
-        }
-    }
-}
-
-class DockerService
-{
-    [string] $Image
-    [string] $Platform
-    [string] $ContainerName
-    [string[]] $DependsOn
-    [string[]] $Networks
-    [Hashtable] $Environment
-    [string[]] $Volumes
-    [string] $Command
-    [string[]] $Ports
-    [DockerHealthcheck] $Healthcheck
-    [DockerLogging] $Logging
-
-    DockerService() { }
-
-    DockerService([DockerService] $other) {
-        $this.Image = $other.Image
-        $this.Platform = $other.Platform
-        $this.ContainerName = $other.ContainerName
-
-        if ($other.DependsOn) {
-            $this.DependsOn = $other.DependsOn.Clone()
-        }
-
-        if ($other.Networks) {
-            $this.Networks = $other.Networks.Clone()
-        }
-
-        if ($other.Environment) {
-            $this.Environment = $other.Environment.Clone()
-        }
-
-        if ($other.Volumes) {
-            $this.Volumes = $other.Volumes.Clone()
-        }
-    
-        $this.Command = $other.Command
-
-        if ($other.Ports) {
-            $this.Ports = $other.Ports.Clone()
-        }
-
-        if ($other.Healthcheck) {
-            $this.Healthcheck = [DockerHealthcheck]::new($other.Healthcheck)
-        }
-     
-        if ($other.Logging)  {
-            $this.Logging = [DockerLogging]::new($other.Logging)
-        }
-    }
-}
-
 function Get-DockerRunCommand
 {
     [OutputType('string[]')]
@@ -402,6 +297,8 @@ function Get-DockerRunCommand
     )
 
     $cmd = @('docker', 'run')
+
+    $cmd += @('--name', $Service.ContainerName)
 
     $cmd += "-d" # detached
 
@@ -463,7 +360,7 @@ function Get-DockerRunCommand
         $cmd += "--log-opt=" + $options
     }
 
-    $cmd += @('--name', $Service.ContainerName, $Service.Image)
+    $cmd += $Service.Image
     $cmd += $Service.Command
 
     return $cmd
@@ -479,17 +376,18 @@ function Start-DockerService
 
     if (Get-ContainerExists -Name $Service.ContainerName) {
         if (Get-ContainerIsRunning -Name $Service.ContainerName) {
-            docker stop $Service.ContainerName | Out-Null
+            Stop-Container -Name $Service.ContainerName
         }
 
         if ($Remove) {
-            docker rm $Service.ContainerName | Out-Null
+            Remove-Container -Name $Service.ContainerName
         }
     }
 
     $RunCommand = (Get-DockerRunCommand -Service $Service) -Join " "
 
     if ($Verbose) {
+        Write-Host "Starting $($Service.ContainerName)"
         Write-Host $RunCommand
     }
 
@@ -510,6 +408,7 @@ function Start-WaykDen
 {
     param(
         [string] $Path,
+        [switch] $SkipPull,
         [switch] $Verbose
     )
 
@@ -522,9 +421,11 @@ function Start-WaykDen
     # update traefik.toml
     Export-TraefikToml -Path:$Path
 
-    # pull docker images
-    foreach ($service in $services) {
-        docker pull $service.Image | Out-Null
+    if (-Not $SkipPull) {
+        # pull docker images
+        foreach ($service in $services) {
+            Request-ContainerImage -Name $Service.Image -Verbose:$Verbose
+        }
     }
 
     # create docker network
@@ -554,10 +455,10 @@ function Stop-WaykDen
     # stop containers
     foreach ($Service in $Services) {
         Write-Host "Stopping $($Service.ContainerName)"
-        docker stop $Service.ContainerName | Out-Null
+        Stop-Container -Name $Service.ContainerName -Quiet
 
         if ($Remove) {
-            docker rm $Service.ContainerName | Out-Null
+            Remove-Container -Name $Service.ContainerName
         }
     }
 }
