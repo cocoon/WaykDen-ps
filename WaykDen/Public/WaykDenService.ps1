@@ -11,21 +11,25 @@ function Get-WaykDenImage
 
     $images = if ($Platform -ne "windows") {
         [ordered]@{ # Linux containers
-            "den-mongo" = "library/mongo:4.1-bionic";
             "den-lucid" = "devolutions/den-lucid:3.6.5-buster";
             "den-picky" = "devolutions/picky:4.2.1-buster";
             "den-server" = "devolutions/den-server:1.9.0-buster";
+
+            "den-mongo" = "library/mongo:4.2-bionic";
             "den-traefik" = "library/traefik:1.7";
-            "den-redis" = "library/redis:5.0-buster";
             "den-nats" = "library/nats:2.1-linux";
+            "den-redis" = "library/redis:5.0-buster";
         }
     } else {
         [ordered]@{ # Windows containers
-            "den-mongo" = "devolutions/mongo:4.0.12-servercore-ltsc2019";
             "den-lucid" = "devolutions/den-lucid:3.6.5-servercore-ltsc2019";
             "den-picky" = "devolutions/picky:4.2.1-servercore-ltsc2019";
             "den-server" = "devolutions/den-server:1.9.0-servercore-ltsc2019";
-            "den-traefik" = "sixeyed/traefik:v1.7.8-windowsservercore-ltsc2019";
+
+            "den-mongo" = "library/mongo:4.2-windowsservercore-1809";
+            "den-traefik" = "library/traefik:1.7-windowsservercore-1809";
+            "den-nats" = "library/nats:2.1-windowsservercore-1809";
+            "den-redis" = ""; # not available
         }
     }
 

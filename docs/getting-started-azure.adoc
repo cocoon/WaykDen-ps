@@ -51,4 +51,3 @@ The first launch will pull all docker images based on Windows Server Core, which
 
 TODO:
 * Improve docker pull options + responsiveness
-* Fix MongoDB Windows container file lock issue
