@@ -20,12 +20,20 @@ function Backup-WaykDenData
 
     $Service = ($Services | Where-Object { $_.ContainerName -Like '*mongo' })[0]
     $container = $Service.ContainerName
-    
-    $backup_file = "den-backup.tgz"
-    $backup_tgz = "/tmp/$backup_file"
 
-    docker @('exec', $container, 'mongodump', '--gzip', "--archive=${backup_tgz}")
-    docker @('cp', "$container`:$backup_tgz", "den-backup.tgz")
+    if ($Platform -eq "linux") {
+        $PathSeparator = "/"
+        $TempPath = "/tmp"
+    } else {
+        $PathSeparator = "\"
+        $TempPath = "C:\temp"
+    }
+
+    $BackupFileName = "den-mongo.tgz"
+    $BackupPath = @($TempPath, $BackupFileName) -Join $PathSeparator
+
+    docker @('exec', $container, 'mongodump', '--gzip', "--archive=${BackupPath}")
+    docker @('cp', "$container`:$BackupPath", $BackupFileName)
 }
 
 function Restore-WaykDenData
@@ -46,13 +54,25 @@ function Restore-WaykDenData
     $Services = Get-WaykDenService -Path:$Path -Config $config
 
     $Service = ($Services | Where-Object { $_.ContainerName -Like '*mongo' })[0]
-    $container = $Service.ContainerName
+    $ContainerName = $Service.ContainerName
 
-    $backup_file = "den-backup.tgz"
-    $backup_tgz = "/tmp/$backup_file"
+    if ($Platform -eq "linux") {
+        $PathSeparator = "/"
+        $TempPath = "/tmp"
+    } else {
+        $PathSeparator = "\"
+        $TempPath = "C:\temp"
+    }
 
-    docker @('cp', "den-backup.tgz", "$container`:$backup_tgz")
-    docker @('exec', $container, 'mongorestore', '--drop', '--gzip', "--archive=${backup_tgz}")
+    $BackupFileName = "den-mongo.tgz"
+    $BackupPath = @($TempPath, $BackupFileName) -Join $PathSeparator
+
+    if (-Not (Get-ContainerIsRunning -Name $ContainerName)) {
+        Start-DockerService $Service
+    }
+
+    docker @('cp', $BackupFileName, "$ContainerName`:$BackupPath")
+    docker @('exec', $ContainerName, 'mongorestore', '--drop', '--gzip', "--archive=${BackupPath}")
 }
 
 Export-ModuleMember -Function Backup-WaykDenData, Restore-WaykDenData
