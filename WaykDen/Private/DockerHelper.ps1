@@ -56,6 +56,7 @@ class DockerService
     [string] $Image
     [string] $Platform
     [string] $ContainerName
+    [bool] $External
     [string[]] $DependsOn
     [string[]] $Networks
     [Hashtable] $Environment
@@ -71,6 +72,8 @@ class DockerService
         $this.Image = $other.Image
         $this.Platform = $other.Platform
         $this.ContainerName = $other.ContainerName
+
+        $this.External = $other.External
 
         if ($other.DependsOn) {
             $this.DependsOn = $other.DependsOn.Clone()

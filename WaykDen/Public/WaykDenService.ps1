@@ -100,7 +100,7 @@ function Get-WaykDenService
     $DenMongo.Platform = $Platform
     $DenMongo.Networks += $DenNetwork
     $DenMongo.Volumes = @("$MongoVolume`:$MongoDataPath")
-    $Services += $DenMongo
+    $DenMongo.External = $config.External
 
     if (($config.ServerMode -eq 'Public') -or ($ServerCount -gt 1)) {
 
@@ -374,6 +374,10 @@ function Start-DockerService
         [switch] $Verbose
     )
 
+    if ($Service.External) {
+        return # service should already be running
+    }
+
     if (Get-ContainerExists -Name $Service.ContainerName) {
         if (Get-ContainerIsRunning -Name $Service.ContainerName) {
             Stop-Container -Name $Service.ContainerName
@@ -454,6 +458,10 @@ function Stop-WaykDen
 
     # stop containers
     foreach ($Service in $Services) {
+        if ($Service.External) {
+            continue
+        }
+
         Write-Host "Stopping $($Service.ContainerName)"
         Stop-Container -Name $Service.ContainerName -Quiet
 

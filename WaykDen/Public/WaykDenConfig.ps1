@@ -12,7 +12,7 @@ class WaykDenConfig
     [string] $ExternalUrl
     [string] $ListenerUrl
     [string] $ServerMode
-    [string] $ServerCount
+    [int] $ServerCount
 
     # MongoDB
     [string] $MongoUrl
@@ -167,11 +167,12 @@ function New-WaykDenConfig
         [string] $ExternalUrl,
         [string] $ListenerUrl,
         [string] $ServerMode,
-        [string] $ServerCount,
+        [int] $ServerCount,
 
         # MongoDB
         [string] $MongoUrl,
         [string] $MongoVolume,
+        [bool] $MongoExternal,
 
         # Jet
         [string] $JetRelayUrl,
@@ -242,11 +243,9 @@ function Set-WaykDenConfig
     
         [string] $Realm,
         [string] $ExternalUrl,
-
-        # Server
         [string] $ListenerUrl,
         [string] $ServerMode,
-        [string] $ServerCount,
+        [int] $ServerCount,
 
         # MongoDB
         [string] $MongoUrl,
@@ -320,12 +319,14 @@ function Get-WaykDenConfig
     [WaykDenConfig].GetProperties() | ForEach-Object {
         $Name = $_.Name
         $snake_name = ConvertTo-SnakeCase -Value $Name
-        if ($yaml.$snake_name -is [string]) {
-            if (![string]::IsNullOrEmpty($yaml.$snake_name)) {
-                $config.$Name = ($yaml.$snake_name).Trim()
+        if ($yaml.Contains($snake_name)) {
+            if ($yaml.$snake_name -is [string]) {
+                if (![string]::IsNullOrEmpty($yaml.$snake_name)) {
+                    $config.$Name = ($yaml.$snake_name).Trim()
+                }
+            } else {
+                $config.$Name = $yaml.$snake_name
             }
-        } else {
-            $config.$Name = $yaml.$snake_name
         }
     }
 
