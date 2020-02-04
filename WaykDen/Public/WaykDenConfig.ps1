@@ -34,10 +34,12 @@ class WaykDenConfig
     [string] $NatsUrl
     [string] $NatsUsername
     [string] $NatsPassword
+    [bool] $NatsExternal
     
     # Redis
     [string] $RedisUrl
     [string] $RedisPassword
+    [bool] $RedisExternal
 
     # Internal API keys
     [string] $DenApiKey
@@ -189,10 +191,12 @@ function New-WaykDenConfig
         [string] $NatsUrl,
         [string] $NatsUsername,
         [string] $NatsPassword,
+        [bool] $NatsExternal,
         
         # Redis
         [string] $RedisUrl,
         [string] $RedisPassword,
+        [bool] $RedisExternal,
 
         [switch] $Force
     )
@@ -267,12 +271,12 @@ function Set-WaykDenConfig
         [string] $NatsUrl,
         [string] $NatsUsername,
         [string] $NatsPassword,
+        [bool] $NatsExternal,
         
         # Redis
         [string] $RedisUrl,
         [string] $RedisPassword,
-
-        [string] $WrongParam,
+        [bool] $RedisExternal,
 
         [switch] $Force
     )

@@ -100,27 +100,28 @@ function Get-WaykDenService
     $DenMongo.Platform = $Platform
     $DenMongo.Networks += $DenNetwork
     $DenMongo.Volumes = @("$MongoVolume`:$MongoDataPath")
-    $DenMongo.External = $config.External
+    $DenMongo.External = $config.MongoExternal
+    $Services += $DenMongo
 
     if (($config.ServerMode -eq 'Public') -or ($ServerCount -gt 1)) {
 
-        if ([string]::IsNullOrEmpty($config.NatsUrl)) {
+        if (-Not $config.NatsUrl) {
             $config.NatsUrl = "den-nats"
         }
 
-        if ([string]::IsNullOrEmpty($config.NatsUsername)) {
+        if (-Not $config.NatsUsername) {
             $config.NatsUsername = New-RandomString -Length 16
         }
 
-        if ([string]::IsNullOrEmpty($config.NatsPassword)) {
+        if (-Not $config.NatsPassword) {
             $config.NatsPassword = New-RandomString -Length 16
         }
     
-        if ([string]::IsNullOrEmpty($config.RedisUrl)) {
+        if (-Not $config.RedisUrl) {
             $config.RedisUrl = "den-redis"
         }
 
-        if ([string]::IsNullOrEmpty($config.RedisPassword)) {
+        if (-Not $config.RedisPassword) {
             $config.RedisPassword = New-RandomString -Length 16
         }
 
@@ -131,6 +132,7 @@ function Get-WaykDenService
         $DenNats.Platform = $Platform
         $DenNats.Networks += $DenNetwork
         $DenNats.Command = "--user $($config.NatsUsername) --pass $($config.NatsPassword)"
+        $DenNats.External = $config.NatsExternal
         $Services += $DenNats
 
         # den-redis service
@@ -140,6 +142,7 @@ function Get-WaykDenService
         $DenRedis.Platform = $Platform
         $DenRedis.Networks += $DenNetwork
         $DenRedis.Command = "redis-server --requirepass $($config.RedisPassword)"
+        $DenRedis.External = $config.RedisExternal
         $Services += $DenRedis
     }
 
