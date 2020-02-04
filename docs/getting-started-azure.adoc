@@ -6,6 +6,8 @@ This getting started guide provides instructions for setting up Wayk Den on a Wi
 
 == Instructions
 
+If you are using a Windows Server 2019 Core + Containers image from the Azure Marketplace, skip straight to launching the Docker service:
+
 Install or update NuGet and PowerShellGet:
 ----
 $ Install-PackageProvider -Name NuGet -Force
