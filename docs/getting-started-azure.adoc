@@ -22,11 +22,15 @@ Import the WaykDen module, create a new directory for Wayk Den files and move to
 $ Import-Module -Name WaykDen
 $ mkdir ~/den-test
 $ cd ~/den-test
+----
+
+For the purpose of this guide, I will be using the DNS name 'den.buzzword.marketing' which was configured to point to my Azure VM (40.121.21.221)
 
 Create a new Wayk Den configuration and then launch Wayk Den:
 ----
-$ New-WaykDenConfig -Realm windjammer.local -ExternalUrl http://localhost:4000
-$ Start-WaykDen -Verbose
+> $DenUrl = 'http://den.buzzword.marketing:80'
+> New-WaykDenConfig -Realm buzzword.marketing -ExternalUrl $DenUrl -ListenerUrl $DenUrl
+> Start-WaykDen -Verbose
 ----
 
 The first launch will pull all docker images based on Windows Server Core, which can take a while because of their large size.
