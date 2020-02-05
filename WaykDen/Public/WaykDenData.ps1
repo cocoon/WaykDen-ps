@@ -6,7 +6,7 @@ function Backup-WaykDenData
     [CmdletBinding()]
     param(
         [string] $ConfigPath,
-        [string] $OutputPath
+        [string] $BackupPath
     )
 
     $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
@@ -28,24 +28,24 @@ function Backup-WaykDenData
         $TempPath = "C:\temp"
     }
 
-    if (-Not $OutputPath) {
-        $OutputPath = Get-Location
+    if (-Not $BackupPath) {
+        $BackupPath = Get-Location
     }
 
     $BackupFileName = "den-mongo.tgz"
-    if (($OutputPath -match ".tgz") -or ($OutputPath -match ".tar.gz")) {
-        $BackupFileName = Split-Path -Path $OutputPath -Leaf
+    if (($BackupPath -match ".tgz") -or ($BackupPath -match ".tar.gz")) {
+        $BackupFileName = Split-Path -Path $BackupPath -Leaf
     } else {
-        $OutputPath = Join-Path $OutputPath $BackupFileName
+        $BackupPath = Join-Path $BackupPath $BackupFileName
     }
 
     $TempBackupPath = @($TempPath, $BackupFileName) -Join $PathSeparator
 
     # make sure parent output directory exists
-    New-Item -Path $(Split-Path -Path $OutputPath) -ItemType "Directory" -Force | Out-Null
+    New-Item -Path $(Split-Path -Path $BackupPath) -ItemType "Directory" -Force | Out-Null
 
     docker @('exec', $container, 'mongodump', '--gzip', "--archive=${TempBackupPath}")
-    docker @('cp', "$container`:$TempBackupPath", $OutputPath)
+    docker @('cp', "$container`:$TempBackupPath", $BackupPath)
 }
 
 function Restore-WaykDenData
@@ -53,7 +53,7 @@ function Restore-WaykDenData
     [CmdletBinding()]
     param(
         [string] $ConfigPath,
-        [string] $InputPath
+        [string] $BackupPath
     )
 
     $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
@@ -77,10 +77,10 @@ function Restore-WaykDenData
 
     $BackupFileName = "den-mongo.tgz"
 
-    if (($InputPath -match ".tgz") -or ($InputPath -match ".tar.gz")) {
-        $BackupFileName = Split-Path -Path $InputPath -Leaf
+    if (($BackupPath -match ".tgz") -or ($BackupPath -match ".tar.gz")) {
+        $BackupFileName = Split-Path -Path $BackupPath -Leaf
     } else {
-        $InputPath = Join-Path $InputPath $BackupFileName
+        $BackupPath = Join-Path $BackupPath $BackupFileName
     }
 
     $TempBackupPath = @($TempPath, $BackupFileName) -Join $PathSeparator
@@ -89,11 +89,11 @@ function Restore-WaykDenData
         Start-DockerService $Service
     }
 
-    if (-Not (Test-Path -Path $InputPath -PathType 'Leaf')) {
-        throw "$InputPath does not exist"
+    if (-Not (Test-Path -Path $BackupPath -PathType 'Leaf')) {
+        throw "$BackupPath does not exist"
     }
 
-    docker @('cp', $InputPath, "$ContainerName`:$TempBackupPath")
+    docker @('cp', $BackupPath, "$ContainerName`:$TempBackupPath")
     docker @('exec', $ContainerName, 'mongorestore', '--drop', '--gzip', "--archive=${TempBackupPath}")
 }
 
