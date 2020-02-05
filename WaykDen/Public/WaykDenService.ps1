@@ -66,7 +66,7 @@ function Get-WaykDenService
     $LucidAdminUsername = $config.LucidAdminUsername
     $LucidAdminSecret = $config.LucidAdminSecret
 
-    $DenPickyUrl = $config.DenPickyUrl
+    $PickyUrl = $config.PickyUrl
     $DenLucidUrl = $config.DenLucidUrl
     $DenServerUrl = $config.DenServerUrl
 
@@ -154,6 +154,7 @@ function Get-WaykDenService
         "PICKY_API_KEY" = $PickyApiKey;
         "PICKY_DATABASE_URL" = $MongoUrl;
     }
+    $DenPicky.External = $config.PickyExternal
     $Services += $DenPicky
 
     # den-lucid service
@@ -176,6 +177,7 @@ function Get-WaykDenService
         "LUCID_ACCOUNT__SEND_ACTIVATION_EMAIL_URL" = "$DenServerUrl/account/activation";
     }
     $DenLucid.Healthcheck = [DockerHealthcheck]::new("curl -sS $DenLucidUrl/health")
+    $DenLucid.External = $config.LucidExternal
     $Services += $DenLucid
 
     # den-server service
@@ -187,7 +189,7 @@ function Get-WaykDenService
     $DenServer.Networks += $DenNetwork
     $DenServer.Environment = [ordered]@{
         "PICKY_REALM" = $Realm;
-        "PICKY_URL" = $DenPickyUrl;
+        "PICKY_URL" = $PickyUrl;
         "PICKY_APIKEY" = $PickyApiKey; # will be changed to PICKY_API_KEY
         "DB_URL" = $MongoUrl; # will be changed to MONGO_URL
         "LUCID_AUTHENTICATION_KEY" = $LucidApiKey;
@@ -255,6 +257,8 @@ function Get-WaykDenService
     if (![string]::IsNullOrEmpty($config.RedisPassword)) {
         $DenServer.Environment['REDIS_PASSWORD'] = $config.RedisPassword
     }
+
+    $DenServer.External = $config.ServerExternal
 
     if ($ServerCount -gt 1) {
         1 .. $ServerCount | % {
@@ -401,7 +405,7 @@ function Start-DockerService
     if (Get-ContainerIsRunning -Name $Service.ContainerName) {
         Write-Host "$($Service.ContainerName) successfully started"
     } else {
-        Write-Error -Message "Error starting $($Service.ContainerName)"
+        throw "Error starting $($Service.ContainerName)"
     }
 }
 
