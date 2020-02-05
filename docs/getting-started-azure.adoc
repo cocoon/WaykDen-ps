@@ -6,26 +6,6 @@ This getting started guide provides instructions for setting up Wayk Den on a Wi
 
 == Instructions
 
-If you are using a Windows Server 2019 Core + Containers image from the Azure Marketplace, skip straight to launching the Docker service:
-
-Install or update NuGet and PowerShellGet:
-----
-$ Install-PackageProvider -Name NuGet -Force
-$ Install-Module -Name PowerShellGet -Force
-----
-
-Check if the Windows Server 'Containers' feature is installed, then install it:
-----
-$ Get-WindowsFeature | Where-Object { $_.Name -Like 'Containers' }
-$ Install-WindowsFeature -Name Containers -Restart
-----
-
-Install the Microsoft Docker provider:
-----
-$ Install-Module -Name DockerMsftProvider -Force
-$ Install-Package -Name docker -ProviderName DockerMsftProvider -Force
-----
-
 Start the docker service if it is not currently running:
 ----
 $ Get-Service | Where-Object { $_.Name -Like 'docker' }
@@ -49,7 +29,4 @@ $ New-WaykDenConfig -Realm windjammer.local -ExternalUrl http://localhost:4000
 $ Start-WaykDen -Verbose
 ----
 
-The first launch will pull all docker images based on Windows Server Core, which can take a while.
-
-TODO:
-* Improve docker pull options + responsiveness
+The first launch will pull all docker images based on Windows Server Core, which can take a while because of their large size.
