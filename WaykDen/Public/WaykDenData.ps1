@@ -4,19 +4,17 @@
 function Backup-WaykDenData
 {
     param(
-        [string] $Path,
+        [string] $ConfigPath,
         [string] $OutputPath
     )
 
-    if ([string]::IsNullOrEmpty($Path)) {
-        $Path = Get-Location
-    }
+    $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
 
-    $config = Get-WaykDenConfig -Path:$Path
+    $config = Get-WaykDenConfig -ConfigPath:$ConfigPath
     Expand-WaykDenConfig -Config $config
 
     $Platform = $config.DockerPlatform
-    $Services = Get-WaykDenService -Path:$Path -Config $config
+    $Services = Get-WaykDenService -ConfigPath:$ConfigPath -Config $config
 
     $Service = ($Services | Where-Object { $_.ContainerName -Like '*mongo' })[0]
     $container = $Service.ContainerName
@@ -39,19 +37,17 @@ function Backup-WaykDenData
 function Restore-WaykDenData
 {
     param(
-        [string] $Path,
+        [string] $ConfigPath,
         [string] $InputPath
     )
 
-    if ([string]::IsNullOrEmpty($Path)) {
-        $Path = Get-Location
-    }
+    $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
 
-    $config = Get-WaykDenConfig -Path:$Path
+    $config = Get-WaykDenConfig -ConfigPath:$ConfigPath
     Expand-WaykDenConfig -Config $config
 
     $Platform = $config.DockerPlatform
-    $Services = Get-WaykDenService -Path:$Path -Config $config
+    $Services = Get-WaykDenService -ConfigPath:$ConfigPath -Config $config
 
     $Service = ($Services | Where-Object { $_.ContainerName -Like '*mongo' })[0]
     $ContainerName = $Service.ContainerName

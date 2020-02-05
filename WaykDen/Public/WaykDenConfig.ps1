@@ -59,6 +59,19 @@ class WaykDenConfig
     [string] $DenRouterUrl
 }
 
+function Find-WaykDenConfig
+{
+    param(
+        [string] $ConfigPath
+    )
+
+    if (-Not $ConfigPath) {
+        $ConfigPath = Get-Location
+    }
+
+    return $ConfigPath
+}
+
 function Expand-WaykDenConfig
 {
     param(
@@ -137,17 +150,15 @@ function Expand-WaykDenConfig
 function Export-TraefikToml()
 {
     param(
-        [string] $Path
+        [string] $ConfigPath
     )
 
-    if ([string]::IsNullOrEmpty($Path)) {
-        $Path = Get-Location
-    }
+    $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
 
-    $config = Get-WaykDenConfig -Path:$Path
+    $config = Get-WaykDenConfig -ConfigPath:$ConfigPath
     Expand-WaykDenConfig $config
 
-    $TraefikPath = Join-Path $Path "traefik"
+    $TraefikPath = Join-Path $ConfigPath "traefik"
     New-Item -Path $TraefikPath -ItemType "Directory" -Force | Out-Null
 
     $TraefikTomlFile = Join-Path $TraefikPath "traefik.toml"
@@ -160,7 +171,7 @@ function Export-TraefikToml()
 function New-WaykDenConfig
 {
     param(
-        [string] $Path,
+        [string] $ConfigPath,
     
         # Server
         [Parameter(Mandatory=$true)]
@@ -201,12 +212,10 @@ function New-WaykDenConfig
         [switch] $Force
     )
 
-    if ([string]::IsNullOrEmpty($Path)) {
-        $Path = Get-Location
-    }
+    $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
 
-    New-Item -Path $Path -ItemType "Directory" -Force | Out-Null
-    $ConfigFile = Join-Path $Path "wayk-den.yml"
+    New-Item -Path $ConfigPath -ItemType "Directory" -Force | Out-Null
+    $ConfigFile = Join-Path $ConfigPath "wayk-den.yml"
 
     $DenApiKey = New-RandomString -Length 32
     $PickyApiKey = New-RandomString -Length 32
@@ -214,7 +223,7 @@ function New-WaykDenConfig
     $LucidAdminUsername = New-RandomString -Length 16
     $LucidAdminSecret = New-RandomString -Length 10
 
-    $DenServerPath = Join-Path $Path "den-server"
+    $DenServerPath = Join-Path $ConfigPath "den-server"
     $DenPublicKeyFile = Join-Path $DenServerPath "den-public.pem"
     $DenPrivateKeyFile = Join-Path $DenServerPath "den-private.key"
     New-Item -Path $DenServerPath -ItemType "Directory" -Force | Out-Null
@@ -237,13 +246,13 @@ function New-WaykDenConfig
 
     ConvertTo-Yaml -Data (ConvertTo-SnakeCaseObject -Object $config) -OutFile $ConfigFile -Force:$Force
 
-    Export-TraefikToml -Path:$Path
+    Export-TraefikToml -ConfigPath:$ConfigPath
 }
 
 function Set-WaykDenConfig
 {
     param(
-        [string] $Path,
+        [string] $ConfigPath,
     
         [string] $Realm,
         [string] $ExternalUrl,
@@ -281,14 +290,12 @@ function Set-WaykDenConfig
         [switch] $Force
     )
 
-    if ([string]::IsNullOrEmpty($Path)) {
-        $Path = Get-Location
-    }
+    $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
 
-    $config = Get-WaykDenConfig -Path $Path
+    $config = Get-WaykDenConfig -ConfigPath:$ConfigPath
 
-    New-Item -Path $Path -ItemType "Directory" -Force | Out-Null
-    $ConfigFile = Join-Path $Path "wayk-den.yml"
+    New-Item -Path $ConfigPath -ItemType "Directory" -Force | Out-Null
+    $ConfigFile = Join-Path $ConfigPath "wayk-den.yml"
 
     $properties = [WaykDenConfig].GetProperties() | ForEach-Object { $_.Name }
     foreach ($param in $PSBoundParameters.GetEnumerator()) {
@@ -300,21 +307,19 @@ function Set-WaykDenConfig
     # always force overwriting wayk-den.yml when updating the config file
     ConvertTo-Yaml -Data (ConvertTo-SnakeCaseObject -Object $config) -OutFile $ConfigFile -Force
 
-    Export-TraefikToml -Path:$Path
+    Export-TraefikToml -ConfigPath:$ConfigPath
 }
 
 function Get-WaykDenConfig
 {
     [OutputType('WaykDenConfig')]
     param(
-        [string] $Path
+        [string] $ConfigPath
     )
 
-    if ([string]::IsNullOrEmpty($Path)) {
-        $Path = Get-Location
-    }
+    $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
 
-    $ConfigFile = Join-Path $Path "wayk-den.yml"
+    $ConfigFile = Join-Path $ConfigPath "wayk-den.yml"
     $ConfigData = Get-Content -Path $ConfigFile -Raw
     $yaml = ConvertFrom-Yaml -Yaml $ConfigData -UseMergingParser -AllDocuments -Ordered
 

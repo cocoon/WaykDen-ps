@@ -39,13 +39,11 @@ function Get-WaykDenImage
 function Get-WaykDenService
 {
     param(
-        [string] $Path,
+        [string] $ConfigPath,
         [WaykDenConfig] $Config
     )
 
-    if ([string]::IsNullOrEmpty($Path)) {
-        $Path = Get-Location
-    }
+    $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
 
     $Platform = $config.DockerPlatform
     $images = Get-WaykDenImage -Platform:$Platform
@@ -205,7 +203,7 @@ function Get-WaykDenService
         "JET_RELAY_URL" = $JetRelayUrl;
         "DEN_API_KEY" = $DenApiKey;
     }
-    $DenServer.Volumes = @("$Path/den-server:$DenServerDataPath`:ro")
+    $DenServer.Volumes = @("$ConfigPath/den-server:$DenServerDataPath`:ro")
     $DenServer.Command = "-l trace"
     $DenServer.Healthcheck = [DockerHealthcheck]::new("curl -sS $DenServerUrl/health")
 
@@ -278,7 +276,7 @@ function Get-WaykDenService
     $DenTraefik.Image = $images[$DenTraefik.ContainerName]
     $DenTraefik.Platform = $Platform
     $DenTraefik.Networks += $DenNetwork
-    $DenTraefik.Volumes = @("$Path/traefik:$TraefikDataPath")
+    $DenTraefik.Volumes = @("$ConfigPath/traefik:$TraefikDataPath")
     $DenTraefik.Command = ("--file --configFile=" + $(@($TraefikDataPath, "traefik.toml") -Join $PathSeparator))
     $DenTraefik.Ports = @("$TraefikPort`:$TraefikPort")
     $Services += $DenTraefik
@@ -414,19 +412,20 @@ function Start-DockerService
 function Start-WaykDen
 {
     param(
-        [string] $Path,
+        [string] $ConfigPath,
         [switch] $SkipPull,
         [switch] $Verbose
     )
 
-    $config = Get-WaykDenConfig -Path:$Path
+    $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
+    $config = Get-WaykDenConfig -ConfigPath:$ConfigPath
     Expand-WaykDenConfig -Config $config
 
     $Platform = $config.DockerPlatform
-    $Services = Get-WaykDenService -Path:$Path -Config $config
+    $Services = Get-WaykDenService -ConfigPath:$ConfigPath -Config $config
 
     # update traefik.toml
-    Export-TraefikToml -Path:$Path
+    Export-TraefikToml -ConfigPath:$ConfigPath
 
     if (-Not $SkipPull) {
         # pull docker images
@@ -450,14 +449,15 @@ function Start-WaykDen
 function Stop-WaykDen
 {
     param(
-        [string] $Path,
+        [string] $ConfigPath,
         [switch] $Remove
     )
 
-    $config = Get-WaykDenConfig -Path:$Path
+    $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
+    $config = Get-WaykDenConfig -ConfigPath:$ConfigPath
     Expand-WaykDenConfig -Config $config
 
-    $Services = Get-WaykDenService -Path:$Path -Config $config
+    $Services = Get-WaykDenService -ConfigPath:$ConfigPath -Config $config
 
     # stop containers
     foreach ($Service in $Services) {
@@ -477,11 +477,12 @@ function Stop-WaykDen
 function Restart-WaykDen
 {
     param(
-        [string] $Path
+        [string] $ConfigPath
     )
 
-    Stop-WaykDen -Path:$Path
-    Start-WaykDen -Path:$Path
+    $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
+    Stop-WaykDen -ConfigPath:$ConfigPath
+    Start-WaykDen -ConfigPath:$ConfigPath
 }
 
 Export-ModuleMember -Function Start-WaykDen, Stop-WaykDen, Restart-WaykDen
