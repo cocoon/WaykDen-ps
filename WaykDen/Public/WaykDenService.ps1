@@ -67,7 +67,7 @@ function Get-WaykDenService
     $LucidAdminSecret = $config.LucidAdminSecret
 
     $PickyUrl = $config.PickyUrl
-    $DenLucidUrl = $config.DenLucidUrl
+    $LucidUrl = $config.LucidUrl
     $DenServerUrl = $config.DenServerUrl
 
     if ($Platform -eq "linux") {
@@ -176,7 +176,7 @@ function Get-WaykDenService
         "LUCID_ACCOUNT__FORGOT_PASSWORD_URL" = "$DenServerUrl/account/forgot";
         "LUCID_ACCOUNT__SEND_ACTIVATION_EMAIL_URL" = "$DenServerUrl/account/activation";
     }
-    $DenLucid.Healthcheck = [DockerHealthcheck]::new("curl -sS $DenLucidUrl/health")
+    $DenLucid.Healthcheck = [DockerHealthcheck]::new("curl -sS $LucidUrl/health")
     $DenLucid.External = $config.LucidExternal
     $Services += $DenLucid
 
@@ -194,7 +194,7 @@ function Get-WaykDenService
         "DB_URL" = $MongoUrl; # will be changed to MONGO_URL
         "LUCID_AUTHENTICATION_KEY" = $LucidApiKey;
         "DEN_ROUTER_EXTERNAL_URL" = "$ExternalUrl/cow";
-        "LUCID_INTERNAL_URL" = $DenLucidUrl;
+        "LUCID_INTERNAL_URL" = $LucidUrl;
         "LUCID_EXTERNAL_URL" = "$ExternalUrl/lucid";
         "DEN_LOGIN_REQUIRED" = "false";
         "DEN_PUBLIC_KEY_FILE" = @($DenServerDataPath, "den-public.pem") -Join $PathSeparator

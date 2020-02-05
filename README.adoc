@@ -41,6 +41,15 @@ You can then list all commands exported from the `WaykDen` module:
 Get-Command -Module WaykDen
 ----
 
+When a new version comes out, you can update the cmdlet and restart Wayk Den to upgrade. The updated cmdlet will point to newer versions of the docker containers used in Wayk Den, so upgrading is a simple matter of restarting Wayk Den:
+
+[source,sh]
+----
+Update-Module -Name WaykDen
+Import-Module WaykDen
+Restart-WaykDen
+----
+
 ==== Installation from Source
 
 If you have installed the module from PSGallery, this section is not useful for you. You can jump to the next section. 
@@ -65,7 +74,7 @@ Import-Module "./WaykDen" -Force
 
 Wayk Den is composed of multiple microservices running inside Docker containers. The PowerShell cmdlet simplifies the usage of Docker for users not familiar with it. For more advanced users, the cmdlet can export a usable docker-compose configuration file.
 
-=== Windows Server 2019
+==== Windows Server 2019
 
 The official way of running Wayk Den on Windows Server is to use the built-in support for Windows containers instead of installing Docker Desktop for Windows and running Linux containers. If you intend to run Wayk Den inside a virtual machine, using Windows Server and Windows containers is the recommended approach because it does not require Docker Desktop for Windows and a Hyper-V virtual machine.
 
@@ -93,23 +102,25 @@ $ Get-Service | Where-Object { $_.Name -Like 'docker' }
 $ Start-Service -Name docker
 ----
 
-=== Windows 10
+==== Windows 10
 
 On Windows 10, the recommended option is to use https://hub.docker.com/editions/community/docker-ce-desktop-windows[Docker Desktop for Windows]. This version of Docker requires Hyper-V for Linux container support, making it suitable for testing on a physical machine, but not so much for a virtual machine because of limited support of Docker Desktop for Windows in virtualized environments. If you want to try Wayk Den inside a virtual machine, use Windows Server 2019 instead with Windows containers.
 
 For bind mount support with Linux containers on Windows, you need to go in the Docker settings and https://rominirani.com/docker-on-windows-mounting-host-directories-d96f3f056a2c[select the required drives from the "Shared Drives" section].
 
-=== macOS
+==== macOS
 
 On macOS, follow the official https://docs.docker.com/docker-for-mac/[Docker Desktop getting started guide].
 
-=== Linux
+==== Linux
 
 On Linux, follow one of the https://docs.docker.com/install/linux/docker-ce/ubuntu/[distribution-specific getting started guides], then do not forget to https://docs.docker.com/install/linux/linux-postinstall/[add your user to the docker group] after installation.
 
 To confirm that Docker is up and running, use the `docker run hello-world` command. If you don't see the "Hello from Docker!" message, something is wrong with your Docker installation.
 
 == Configuration
+
+All Wayk Den commands accept a -ConfigPath parameter to point to a directory where various configuration files are kept. If this parameter is not specified, the current working directory is used by default.
 
 The first step is to create a Wayk Den configuration file with mandatory parameters using the `New-WaykDenConfig` command.
 
@@ -164,10 +175,42 @@ Set your Jet Relay Url to `https://api.jet-relay.net`:
 
 [source, sh]
 ----
-PS > Set-WaykConfig -JetRelayUrl https://api.jet-relay.net
+PS > Set-WaykDenConfig -JetRelayUrl https://api.jet-relay.net
 ----
 
 Continue your initial configuration, and once you know it is working, come back to the link:docs\devolutions-jet.adoc[Devolutions Jet] page for more information on how to deploy your own relays.
+
+== Data Persistence
+
+Aside from the Wayk Den configuration files, all Wayk Den data is stored inside a https://www.mongodb.com[MongoDB database]. If you do not specify a database, a simple MongoDB container will be launched with a docker volume attached to it. While this is fine for a lot of use cases, using a single MongoDB container instance is not suitable for high availability scenarios.
+
+To point Wayk Den to an existing MongoDB server, you need to configure a database connection string, and set MongoDB as external to avoid launching a MongoDB container instance:
+
+----
+PS > Set-WaykDenConfig -MongoExternal $true -MongoUrl 'mongodb://mongo-server:27017'
+----
+
+=== Database Backup
+
+MongoDB database backups can be done using the https://docs.mongodb.com/manual/reference/program/mongodump/[`mongodump` command-line tool]. For simplicity, the `Backup-WaykDenData` command can be used to streamline the process:
+
+----
+PS > Backup-WaykDenData -BackupPath .\den-backup.tgz -Verbose
+----
+
+The `Backup-WaykDenData` is only usable with a non-external MongoDB database. You can add the `-Verbose` parameter to show the docker commands used to call `mongodump` inside a container for reference.
+
+=== Database Restore
+
+A MongoDB database can be restored from a backup using the https://docs.mongodb.com/manual/reference/program/mongorestore/[`mongorestore` command-line tool]. For obvious reasons, you should be careful about restoring a database, as the operation will overwrite the current data and replace it with the one from the backup.
+
+Just like `Backup-WaykDenData`, `Restore-WaykDenData` should only be used with a non-external MongoDB database. A proper restore involves stopping Wayk Den, restoring data from the backup file, then restarting Wayk Den. Since Stop-WaykDen stops the database container, `Restore-WaykDenData` will automatically start it for the restore operation.
+
+----
+PS > Stop-WaykDen
+PS > Restore-WaykDenData -BackupPath .\den-backup.tgz -Verbose
+PS > Restart-WaykDen
+----
 
 == Running
 

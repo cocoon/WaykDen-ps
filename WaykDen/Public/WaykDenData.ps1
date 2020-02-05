@@ -44,8 +44,15 @@ function Backup-WaykDenData
     # make sure parent output directory exists
     New-Item -Path $(Split-Path -Path $BackupPath) -ItemType "Directory" -Force | Out-Null
 
-    docker @('exec', $container, 'mongodump', '--gzip', "--archive=${TempBackupPath}")
-    docker @('cp', "$container`:$TempBackupPath", $BackupPath)
+    $args = @('docker', 'exec', $container, 'mongodump', '--gzip', "--archive=${TempBackupPath}")
+    $cmd = $args -Join " "
+    Write-Verbose $cmd
+    Invoke-Expression $cmd
+
+    $args = @('docker', 'cp', "$container`:$TempBackupPath", $BackupPath)
+    $cmd = $args -Join " "
+    Write-Verbose $cmd
+    Invoke-Expression $cmd
 }
 
 function Restore-WaykDenData
@@ -93,8 +100,15 @@ function Restore-WaykDenData
         throw "$BackupPath does not exist"
     }
 
-    docker @('cp', $BackupPath, "$ContainerName`:$TempBackupPath")
-    docker @('exec', $ContainerName, 'mongorestore', '--drop', '--gzip', "--archive=${TempBackupPath}")
+    $args = @('docker', 'cp', $BackupPath, "$ContainerName`:$TempBackupPath")
+    $cmd = $args -Join " "
+    Write-Verbose $cmd
+    Invoke-Expression $cmd
+
+    $args = @('docker', 'exec', $ContainerName, 'mongorestore', '--drop', '--gzip', "--archive=${TempBackupPath}")
+    $cmd = $args -Join " "
+    Write-Verbose $cmd
+    Invoke-Expression $cmd
 }
 
 Export-ModuleMember -Function Backup-WaykDenData, Restore-WaykDenData
