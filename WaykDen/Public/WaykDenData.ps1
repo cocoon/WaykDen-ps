@@ -28,11 +28,24 @@ function Backup-WaykDenData
         $TempPath = "C:\temp"
     }
 
-    $BackupFileName = "den-mongo.tgz"
-    $BackupPath = @($TempPath, $BackupFileName) -Join $PathSeparator
+    if (-Not $OutputPath) {
+        $OutputPath = Get-Location
+    }
 
-    docker @('exec', $container, 'mongodump', '--gzip', "--archive=${BackupPath}")
-    docker @('cp', "$container`:$BackupPath", $BackupFileName)
+    $BackupFileName = "den-mongo.tgz"
+    if (($OutputPath -match ".tgz") -or ($OutputPath -match ".tar.gz")) {
+        $BackupFileName = Split-Path -Path $OutputPath -Leaf
+    } else {
+        $OutputPath = Join-Path $OutputPath $BackupFileName
+    }
+
+    $TempBackupPath = @($TempPath, $BackupFileName) -Join $PathSeparator
+
+    # make sure parent output directory exists
+    New-Item -Path $(Split-Path -Path $OutputPath) -ItemType "Directory" -Force | Out-Null
+
+    docker @('exec', $container, 'mongodump', '--gzip', "--archive=${TempBackupPath}")
+    docker @('cp', "$container`:$TempBackupPath", $OutputPath)
 }
 
 function Restore-WaykDenData
@@ -63,14 +76,25 @@ function Restore-WaykDenData
     }
 
     $BackupFileName = "den-mongo.tgz"
-    $BackupPath = @($TempPath, $BackupFileName) -Join $PathSeparator
+
+    if (($InputPath -match ".tgz") -or ($InputPath -match ".tar.gz")) {
+        $BackupFileName = Split-Path -Path $InputPath -Leaf
+    } else {
+        $InputPath = Join-Path $InputPath $BackupFileName
+    }
+
+    $TempBackupPath = @($TempPath, $BackupFileName) -Join $PathSeparator
 
     if (-Not (Get-ContainerIsRunning -Name $ContainerName)) {
         Start-DockerService $Service
     }
 
-    docker @('cp', $BackupFileName, "$ContainerName`:$BackupPath")
-    docker @('exec', $ContainerName, 'mongorestore', '--drop', '--gzip', "--archive=${BackupPath}")
+    if (-Not (Test-Path -Path $InputPath -PathType 'Leaf')) {
+        throw "$InputPath does not exist"
+    }
+
+    docker @('cp', $InputPath, "$ContainerName`:$TempBackupPath")
+    docker @('exec', $ContainerName, 'mongorestore', '--drop', '--gzip', "--archive=${TempBackupPath}")
 }
 
 Export-ModuleMember -Function Backup-WaykDenData, Restore-WaykDenData
