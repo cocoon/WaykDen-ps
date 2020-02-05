@@ -3,9 +3,9 @@
 
 function Import-WaykDenCertificate
 {
+    [CmdletBinding()]
     param(
         [string] $ConfigPath,
-
         [string] $CertificateFile,
         [string] $PrivateKeyFile,
         [string] $Password

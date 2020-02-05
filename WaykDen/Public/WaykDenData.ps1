@@ -3,6 +3,7 @@
 
 function Backup-WaykDenData
 {
+    [CmdletBinding()]
     param(
         [string] $ConfigPath,
         [string] $OutputPath
@@ -36,6 +37,7 @@ function Backup-WaykDenData
 
 function Restore-WaykDenData
 {
+    [CmdletBinding()]
     param(
         [string] $ConfigPath,
         [string] $InputPath

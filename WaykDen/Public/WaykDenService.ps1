@@ -83,10 +83,8 @@ function Get-WaykDenService
     }
 
     $ServerCount = 1
-    if (![string]::IsNullOrEmpty($config.ServerCount)) {
-        if ([int] $config.ServerCount -gt 1) {
-            $ServerCount = [int] $config.ServerCount
-        }
+    if ([int] $config.ServerCount -gt 1) {
+        $ServerCount = [int] $config.ServerCount
     }
 
     $Services = @()
@@ -369,10 +367,10 @@ function Get-DockerRunCommand
 
 function Start-DockerService
 {
+    [CmdletBinding()]
     param(
         [DockerService] $Service,
-        [switch] $Remove,
-        [switch] $Verbose
+        [switch] $Remove
     )
 
     if ($Service.External) {
@@ -391,10 +389,8 @@ function Start-DockerService
 
     $RunCommand = (Get-DockerRunCommand -Service $Service) -Join " "
 
-    if ($Verbose) {
-        Write-Host "Starting $($Service.ContainerName)"
-        Write-Host $RunCommand
-    }
+    Write-Host "Starting $($Service.ContainerName)"
+    Write-Verbose $RunCommand
 
     $id = Invoke-Expression $RunCommand
 
@@ -402,7 +398,7 @@ function Start-DockerService
         Wait-ContainerHealthy -Name $Service.ContainerName | Out-Null
     }
 
-    if (Get-ContainerIsRunning -Name $Service.ContainerName){
+    if (Get-ContainerIsRunning -Name $Service.ContainerName) {
         Write-Host "$($Service.ContainerName) successfully started"
     } else {
         Write-Error -Message "Error starting $($Service.ContainerName)"
@@ -411,10 +407,10 @@ function Start-DockerService
 
 function Start-WaykDen
 {
+    [CmdletBinding()]
     param(
         [string] $ConfigPath,
-        [switch] $SkipPull,
-        [switch] $Verbose
+        [switch] $SkipPull
     )
 
     $ConfigPath = Find-WaykDenConfig -ConfigPath:$ConfigPath
@@ -430,7 +426,7 @@ function Start-WaykDen
     if (-Not $SkipPull) {
         # pull docker images
         foreach ($service in $services) {
-            Request-ContainerImage -Name $Service.Image -Verbose:$Verbose
+            Request-ContainerImage -Name $Service.Image
         }
     }
 
@@ -442,12 +438,13 @@ function Start-WaykDen
 
     # start containers
     foreach ($Service in $Services) {
-        Start-DockerService -Service $Service -Remove -Verbose:$Verbose
+        Start-DockerService -Service $Service -Remove
     }
 }
 
 function Stop-WaykDen
 {
+    [CmdletBinding()]
     param(
         [string] $ConfigPath,
         [switch] $Remove
@@ -476,6 +473,7 @@ function Stop-WaykDen
 
 function Restart-WaykDen
 {
+    [CmdletBinding()]
     param(
         [string] $ConfigPath
     )

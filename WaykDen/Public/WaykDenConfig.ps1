@@ -170,6 +170,7 @@ function Export-TraefikToml()
 
 function New-WaykDenConfig
 {
+    [CmdletBinding()]
     param(
         [string] $ConfigPath,
     
@@ -251,6 +252,7 @@ function New-WaykDenConfig
 
 function Set-WaykDenConfig
 {
+    [CmdletBinding()]
     param(
         [string] $ConfigPath,
     
@@ -312,6 +314,7 @@ function Set-WaykDenConfig
 
 function Get-WaykDenConfig
 {
+    [CmdletBinding()]
     [OutputType('WaykDenConfig')]
     param(
         [string] $ConfigPath
