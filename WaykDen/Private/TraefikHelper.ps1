@@ -29,6 +29,10 @@ function New-TraefikToml
     $TraefikCertFile = $(@($TraefikDataPath, "den-server.pem") -Join $PathSeparator)
     $TraefikKeyFile = $(@($TraefikDataPath, "den-server.key") -Join $PathSeparator)
 
+    # escape backslash characters
+    $TraefikCertFile = $TraefikCertFile -replace '[\\/]', '\\'
+    $TraefikKeyFile = $TraefikKeyFile -replace '[\\/]', '\\'
+
     $templates = @()
 
     $templates += '

@@ -78,13 +78,25 @@ Import the WaykDen module, create a new directory for Wayk Den files and move to
 > cd ~/den-test
 ----
 
-Create a new Wayk Den configuration and then launch Wayk Den:
+Create a new Wayk Den configuration and then import a valid TLS certificate. For testing, I have obtained a free certificate from https://letsencrypt.org/[letsencrypt] using https://github.com/rmbolger/Posh-ACME[Posh-ACME] and the https://github.com/rmbolger/Posh-ACME/blob/master/Posh-ACME/DnsPlugins/Azure-Readme.md[Azure DNS plugin].
+
 ----
-> $DenUrl = 'http://den.buzzword.marketing:80'
-> New-WaykDenConfig -Realm buzzword.marketing -ExternalUrl $DenUrl -ListenerUrl $DenUrl
+> New-WaykDenConfig -Realm buzzword.marketing -ExternalUrl 'https://den.buzzword.marketing' -ListenerUrl 'https://localhost:443'
+> Import-WaykDenCertificate -CertificateFile .\fullchain.pfx -Password 'poshacme'
+----
+
+Alternatively, you can skip the TLS certificate configuration and expose Wayk Den in HTTP (never do this in production):
+
+----
+> New-WaykDenConfig -Realm buzzword.marketing -ExternalUrl 'http://den.buzzword.marketing' -ListenerUrl 'http://localhost:80'
+----
+
+Finally, start Wayk Den:
+
+----
 > Start-WaykDen -Verbose
 ----
 
-The first launch will pull all docker images based on Windows Server Core, which can take a while because of their large size. Once started, you should be able to open http://den.buzzword.marketing in your browser.
+The first launch will pull all docker images based on Windows Server Core, which can take a while because of their large size. Once started, you should be able to open https://den.buzzword.marketing in your browser.
 
 From there, you can follow the link:docs\getting-started-argo.adoc[getting started guide (Argo tunnel)] starting from Step 4: Complete initial configuration from Wayk Den Web UI.
