@@ -391,6 +391,17 @@ function Start-DockerService
         }
     }
 
+    # Workaround for https://github.com/docker-library/mongo/issues/385
+    if (($Service.Platform -eq 'Windows') -and ($Service.ContainerName -Like '*mongo')) {
+        $VolumeName = $($Service.Volumes[0] -Split ':', 2)[0]
+        $Volume = $(docker volume inspect $VolumeName) | ConvertFrom-Json
+        $WiredTigerLock = Join-Path $Volume.MountPoint 'WiredTiger.lock'
+        if (Test-Path $WiredTigerLock) {
+            Write-Host "Removing $WiredTigerLock"
+            Remove-Item $WiredTigerLock -Force
+        }
+    }
+
     $RunCommand = (Get-DockerRunCommand -Service $Service) -Join " "
 
     Write-Host "Starting $($Service.ContainerName)"

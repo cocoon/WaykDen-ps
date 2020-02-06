@@ -77,6 +77,33 @@ function Find-WaykDenConfig
     return $ConfigPath
 }
 
+function Expand-WaykDenConfigKeys
+{
+    param(
+        [WaykDenConfig] $Config
+    )
+
+    if (-Not $config.DenApiKey) {
+        $config.DenApiKey = New-RandomString -Length 32
+    }
+
+    if (-Not $config.PickyApiKey) {
+        $config.PickyApiKey = New-RandomString -Length 32
+    }
+
+    if (-Not $config.LucidApiKey) {
+        $config.LucidApiKey = New-RandomString -Length 32
+    }
+
+    if (-Not $config.LucidAdminUsername) {
+        $config.LucidAdminUsername = New-RandomString -Length 16
+    }
+
+    if (-Not $config.LucidAdminSecret) {
+        $config.LucidAdminSecret = New-RandomString -Length 10
+    }
+}
+
 function Expand-WaykDenConfig
 {
     param(
@@ -244,12 +271,6 @@ function New-WaykDenConfig
     New-Item -Path $ConfigPath -ItemType "Directory" -Force | Out-Null
     $ConfigFile = Join-Path $ConfigPath "wayk-den.yml"
 
-    $DenApiKey = New-RandomString -Length 32
-    $PickyApiKey = New-RandomString -Length 32
-    $LucidApiKey = New-RandomString -Length 32
-    $LucidAdminUsername = New-RandomString -Length 16
-    $LucidAdminSecret = New-RandomString -Length 10
-
     $DenServerPath = Join-Path $ConfigPath "den-server"
     $DenPublicKeyFile = Join-Path $DenServerPath "den-public.pem"
     $DenPrivateKeyFile = Join-Path $DenServerPath "den-private.key"
@@ -270,6 +291,8 @@ function New-WaykDenConfig
             $config.($param.Key) = $param.Value
         }
     }
+
+    Expand-WaykDenConfigKeys -Config:$config
 
     ConvertTo-Yaml -Data (ConvertTo-SnakeCaseObject -Object $config) -OutFile $ConfigFile -Force:$Force
 
@@ -353,6 +376,8 @@ function Set-WaykDenConfig
             $config.($param.Key) = $param.Value
         }
     }
+
+    Expand-WaykDenConfigKeys -Config:$config
  
     # always force overwriting wayk-den.yml when updating the config file
     ConvertTo-Yaml -Data (ConvertTo-SnakeCaseObject -Object $config) -OutFile $ConfigFile -Force
