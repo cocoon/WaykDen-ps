@@ -277,6 +277,11 @@ function Get-WaykDenService
         $DenServer.Environment['LDAP_CERTIFICATE_VALIDATION'] = 'false'
     }
 
+    if (Test-Path $(Join-Path $ConfigPath 'den-server/ldap-root-ca.pem')) {
+        $DenServer.Environment['LDAP_TRUSTED_ROOT_CA_FILE'] = `
+            @($DenServerDataPath, "ldap-root-ca.pem") -Join $PathSeparator
+    }
+
     if (![string]::IsNullOrEmpty($config.NatsUrl)) {
         $DenServer.Environment['NATS_HOST'] = $config.NatsUrl
     }
