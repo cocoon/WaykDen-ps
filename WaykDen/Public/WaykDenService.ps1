@@ -247,6 +247,10 @@ function Get-WaykDenService
         $DenServer.Environment['LDAP_SERVER_URL'] = $config.LdapServerUrl
     }
 
+    if (![string]::IsNullOrEmpty($config.LdapServerIp)) {
+        $DenServer.Environment['LDAP_SERVER_IP'] = $config.LdapServerIp
+    }
+
     if (![string]::IsNullOrEmpty($config.LdapUsername)) {
         $DenServer.Environment['LDAP_USERNAME'] = $config.LdapUsername
     }
@@ -265,6 +269,12 @@ function Get-WaykDenService
 
     if (![string]::IsNullOrEmpty($config.LdapBaseDn)) {
         $DenServer.Environment['LDAP_BASE_DN'] = $config.LdapBaseDn
+    }
+
+    if ($config.LdapCertificateValidation) {
+        $DenServer.Environment['LDAP_CERTIFICATE_VALIDATION'] = 'true'
+    } else {
+        $DenServer.Environment['LDAP_CERTIFICATE_VALIDATION'] = 'false'
     }
 
     if (![string]::IsNullOrEmpty($config.NatsUrl)) {
